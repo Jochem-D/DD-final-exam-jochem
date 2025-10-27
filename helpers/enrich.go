@@ -43,6 +43,16 @@ type fetchResult struct {
 	equip EquipmentInfo
 }
 
+// FetchSpellInfoPublic is an exported wrapper for fetchSpellInfo
+func FetchSpellInfoPublic(ctx context.Context, idx string, logs LogSink) (SpellInfo, error) {
+	return fetchSpellInfo(ctx, idx, logs)
+}
+
+// FetchEquipmentInfoPublic is an exported wrapper for fetchEquipmentInfo
+func FetchEquipmentInfoPublic(ctx context.Context, idx string, logs LogSink) (EquipmentInfo, error) {
+	return fetchEquipmentInfo(ctx, idx, logs)
+}
+
 // --- Deduped fetch/parse helpers ---
 
 // fetchSpellInfo fetches one spell and converts it to SpellInfo.
