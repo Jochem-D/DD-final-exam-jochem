@@ -1,0 +1,10 @@
+# Compiled binary
+ddsheet
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

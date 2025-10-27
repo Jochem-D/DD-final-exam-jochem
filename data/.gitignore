@@ -1,0 +1,9 @@
+# Ignore runtime data but keep the directory structure
+characters/*.json
+enrichments/*.json
+cache/*.json
+
+# Keep example files if any
+!characters/.gitkeep
+!enrichments/.gitkeep
+!cache/.gitkeep

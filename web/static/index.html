@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>All Characters</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="css/normalize.css">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    body { max-width: 860px; margin: 20px auto; padding: 0 12px; font-family: system-ui, sans-serif; }
+    h1 { margin: 16px 0; }
+    ul#charList { list-style: none; padding: 0; margin: 0; }
+    ul#charList li { border: 1px solid #ddd; border-radius: 10px; padding: 12px 14px; margin: 10px 0; background:#fff; display:flex; align-items:center; justify-content:space-between; }
+    .meta { color:#666; font-size: 14px; }
+    a.btn { text-decoration:none; border:1px solid #000; border-radius:10px; padding:6px 10px; }
+    .empty { color:#666; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h1>All Characters</h1>
+  <p class="empty" id="emptyMsg" style="display:none">No characters found. Create one with your CLI and refresh.</p>
+  <ul id="charList"></ul>
+
+  <script type="module" src="js/list.js"></script>
+</body>
+</html>
