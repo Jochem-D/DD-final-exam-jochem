@@ -6,48 +6,100 @@ A command-line tool for managing D&D 5e characters
 
 ```
 DDsheetfinal/
-├── cmd/                        # Application entry points
-│   └── ddsheet/               # Main CLI application
-│       └── main.go
-├── internal/                   # Private application code
-│   ├── domain/                # Core business logic (no dependencies)
-│   │   ├── entities/          # Character and other domain entities
-│   │   ├── valueobjects/      # Immutable values (abilities, armor, SRD data)
-│   │   ├── repositories/      # Repository interfaces
-│   │   └── services/          # Domain services (AC calculation, etc.)
-│   ├── application/           # Use cases and application logic
-│   │   └── usecases/          # Command handlers (create, view, equip, etc.)
-│   ├── infrastructure/        # External implementations
-│   │   ├── persistence/       # File storage, CSV access
-│   │   ├── external/          # API clients (dnd5eapi)
-│   │   └── di/                # Dependency injection container
-│   └── presentation/          # User interfaces
-│       └── cli/               # Command-line handlers
-├── assets/                    # Static resources
-│   └── srd/                   # D&D 5e SRD data files
+├── cmd/                                    # Application entry points
+│   └── ddsheet/
+│       └── main.go                        # CLI entry point, routes commands
+│
+├── internal/                              
+│   ├── domain/                            # Domain Layer
+│   │   ├── entities/
+│   │   │   └── character.go              
+│   │   ├── valueobjects/
+│   │   │   ├── abilities.go              # Ability modifiers, proficiency bonus
+│   │   │   ├── armor.go                  # Armor types and AC info
+│   │   │   └── srd_data.go               # Skill/class/race mappings
+│   │   ├── repositories/                  # Repository interfaces
+│   │   │   ├── character_repository.go
+│   │   │   ├── enrichment_repository.go
+│   │   │   └── srd_repository.go
+│   │   └── services/
+│   │       └── character_service.go      # Domain logic (AC, saves, skills)
+│   │
+│   ├── application/                       # Application Layer
+│   │   └── usecases/
+│   │       ├── create_character.go
+│   │       ├── view_character.go
+│   │       ├── list_characters.go
+│   │       ├── delete_character.go
+│   │       ├── equip_item.go
+│   │       ├── unequip_item.go
+│   │       ├── learn_spell.go
+│   │       ├── prepare_spell.go
+│   │       ├── get_learnable_spells.go
+│   │       ├── enrich_character.go        # API enrichment
+│   │       └── serve_http.go
+│   │
+│   ├── infrastructure/                    # Infrastructure Layer
+│   │   ├── persistence/
+│   │   │   ├── json_character_repository.go  
+│   │   │   └── csv_srd_repository.go         
+│   │   ├── external/
+│   │   │   └── dnd5eapi_enrichment_repository.go  # D&D 5e API client
+│   │   └── di/
+│   │       └── container.go              # Dependency injection container
+│   │
+│   └── presentation/                      # Presentation Layer (UI)
+│       └── cli/
+│           ├── create_handler.go
+│           ├── view_handler.go
+│           ├── list_handler.go
+│           ├── delete_handler.go
+│           ├── equip_handler.go
+│           ├── unequip_handler.go
+│           ├── learn_spell_handler.go
+│           ├── prepare_spell_handler.go
+│           ├── learnable_spells_handler.go
+│           ├── enrich_handler.go
+│           ├── serve_handler.go           # HTTP server
+│           └── help_handler.go
+│
+├── assets/                                 # Static resources
+│   └── srd/
 │       ├── 5e-SRD-Equipment.csv
 │       └── 5e-SRD-Spells.csv
-├── data/                      # Runtime data (gitignored)
-│   ├── characters/            # Character JSON files
-│   ├── enrichments/           # Enriched character data
-│   └── cache/                 # API response cache
-├── web/                       # Web frontend
-│   ├── static/                # HTML, CSS, JS files
+│
+├── data/                                   # Runtime data (gitignored, preserves structure)
+│   ├── characters/                        # Character JSON files
+│   │   └── .gitkeep
+│   ├── enrichments/                       # Enriched character data
+│   └── cache/                             # API response cache
+│       ├── spells.json
+│       └── equipment.json
+│
+├── web/                                    # Web frontend
+│   ├── static/
+│   │   ├── index.html                     
+│   │   ├── charactersheet.html            
+│   │   ├── css/
+│   │   │   ├── normalize.css
+│   │   │   └── style.css
+│   │   └── js/
+│   │       ├── list.js
+│   │       └── charactersheet.js
 │   └── manifest.json
+│
 ├── go.mod
 └── README.md
 ```
 
 ## Architecture
 
-This project follows **Onion Architecture** (also known as Clean Architecture):
+This project follows **Onion Architecture** (aka Clean Architecture):
 
-- **Domain Layer** (Core): Pure business logic with no external dependencies
-- **Application Layer**: Use cases that orchestrate domain logic
-- **Infrastructure Layer**: Concrete implementations (file storage, APIs, etc.)
-- **Presentation Layer**: User interfaces (CLI, HTTP handlers)
-
-**Dependency Rule**: All dependencies point inward toward the domain. The domain has no knowledge of outer layers.
+- **Domain Layer** 
+- **Application Layer**
+- **Infrastructure Layer**
+- **Presentation Layer**
 
 ## Building
 
@@ -59,7 +111,7 @@ go build -o ddsheet ./cmd/ddsheet
 
 ```bash
 # Create a character
-./ddsheet create -name Gandalf -race human -class wizard -level 20 -int 20 -wis 18 -cha 14
+./ddsheet create -name Gandalf -race Human -class Wizard -level 20 -str 10 -dex 10 -con 10 -int 20 -wis 18 -cha 14
 
 # View character details
 ./ddsheet view -name Gandalf
@@ -67,15 +119,33 @@ go build -o ddsheet ./cmd/ddsheet
 # List all characters
 ./ddsheet list
 
-# Equip items
-./ddsheet equip -name Gandalf -weapon Quarterstaff -armor "robe"
-
-# Learn and prepare spells
-./ddsheet learn-spell -name Gandalf -spell "fireball"
-./ddsheet prepare-spell -name Gandalf -spell "fireball"
-
 # Delete a character
 ./ddsheet delete -name Gandalf
+
+# Equip items
+./ddsheet equip -name Gandalf -weapon Quarterstaff
+./ddsheet equip -name Gandalf -armor "Leather Armor"
+./ddsheet equip -name Gandalf -shield Shield
+
+# Unequip items
+./ddsheet unequip -name Gandalf -weapon
+./ddsheet unequip -name Gandalf -armor
+./ddsheet unequip -name Gandalf -shield
+
+# Learn and prepare spells
+./ddsheet learn-spell -name Gandalf -spell "Fireball"
+./ddsheet prepare-spell -name Gandalf -spell "Fireball"
+./ddsheet learnable-spells -name Gandalf
+
+# Enrich character with D&D 5e API data
+./ddsheet enrich Gandalf
+./ddsheet enrich Gandalf --inplace           # Save enrichment to character file
+./ddsheet enrich Gandalf --force             # Re-fetch even if cached
+./ddsheet enrich Gandalf --fetch-all         # Pre-cache all spells and equipment
+
+# Start web server
+./ddsheet serve                              # Runs on http://localhost:8080
+./ddsheet serve -port 3000                   # Custom port
 
 # Show all commands
 ./ddsheet help
@@ -84,7 +154,7 @@ go build -o ddsheet ./cmd/ddsheet
 ## Features
 
 - Character creation with racial bonuses and skill proficiencies
-- Equipment management with automatic AC calculation
+- Equipment management with AC calculation
 - Spell learning and preparation (class-specific)
 - Derived stat calculation (initiative, passive perception, etc.)
 - JSON-based character storage
@@ -92,12 +162,4 @@ go build -o ddsheet ./cmd/ddsheet
 - External API integration for enrichment (dnd5eapi)
 
 ## Development
-
-The codebase is organized into layers with clear separation of concerns:
-
-1. **Domain** - Define entities, value objects, and interfaces
-2. **Application** - Create use cases that implement business workflows
-3. **Infrastructure** - Implement interfaces with concrete technologies
-4. **Presentation** - Build user-facing handlers
-
-All components are wired together via dependency injection in `internal/infrastructure/di/container.go`.
+All components are wired together via dependency injection (I hope)

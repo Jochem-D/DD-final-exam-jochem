@@ -4,12 +4,10 @@ import (
 	"ddsheetfinal/internal/domain/repositories"
 )
 
-// DeleteCharacterUseCase handles character deletion
 type DeleteCharacterUseCase struct {
 	characterRepo repositories.CharacterRepository
 }
 
-// NewDeleteCharacterUseCase creates a new DeleteCharacterUseCase
 func NewDeleteCharacterUseCase(characterRepo repositories.CharacterRepository) *DeleteCharacterUseCase {
 	return &DeleteCharacterUseCase{
 		characterRepo: characterRepo,

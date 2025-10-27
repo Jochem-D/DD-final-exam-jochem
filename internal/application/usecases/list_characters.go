@@ -9,7 +9,6 @@ type ListCharactersUseCase struct {
 	characterRepo repositories.CharacterRepository
 }
 
-// NewListCharactersUseCase creates a new ListCharactersUseCase
 func NewListCharactersUseCase(characterRepo repositories.CharacterRepository) *ListCharactersUseCase {
 	return &ListCharactersUseCase{
 		characterRepo: characterRepo,

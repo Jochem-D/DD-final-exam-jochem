@@ -21,7 +21,6 @@ type PrepareSpellUseCase struct {
 	characterRepo repositories.CharacterRepository
 }
 
-// NewPrepareSpellUseCase creates a new PrepareSpellUseCase
 func NewPrepareSpellUseCase(characterRepo repositories.CharacterRepository) *PrepareSpellUseCase {
 	return &PrepareSpellUseCase{
 		characterRepo: characterRepo,

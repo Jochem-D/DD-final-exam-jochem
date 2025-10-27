@@ -53,7 +53,6 @@ func (uc *EnrichCharacterUseCase) Execute(ctx context.Context, input EnrichChara
 	logs := []string{}
 	start := time.Now()
 
-	// Load character
 	char, err := uc.characterRepo.FindByName(input.CharacterName)
 	if err != nil {
 		return nil, fmt.Errorf("character not found: %w", err)

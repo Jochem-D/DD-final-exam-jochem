@@ -58,6 +58,13 @@ func (h *HelpHandler) Handle(args []string) {
     List spells the character can still learn
     Usage: learnable-spells -name NAME
 
+  enrich
+    Fetch spell and equipment data from the D&D 5e API
+    Usage: enrich <name> [--inplace] [--force] [--fetch-all]
+      --inplace: Save enrichment data to character file
+      --force: Re-fetch even if cached
+      --fetch-all: Pre-cache all spells and equipment before enriching
+
   help
     Show this help message
 

@@ -23,15 +23,13 @@ type CreateCharacterInput struct {
 	Int        int
 	Wis        int
 	Cha        int
-	Skills     []string // optional, will be auto-assigned if empty
+	Skills     []string // Optional
 }
 
-// CreateCharacterUseCase handles character creation logic
 type CreateCharacterUseCase struct {
 	characterRepo repositories.CharacterRepository
 }
 
-// NewCreateCharacterUseCase creates a new CreateCharacterUseCase
 func NewCreateCharacterUseCase(characterRepo repositories.CharacterRepository) *CreateCharacterUseCase {
 	return &CreateCharacterUseCase{
 		characterRepo: characterRepo,
