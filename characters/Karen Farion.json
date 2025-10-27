@@ -1,0 +1,20 @@
+{
+  "name": "Karen Farion",
+  "race": "human",
+  "class": "rogue",
+  "background": "acolyite",
+  "level": 1,
+  "str": 11,
+  "dex": 16,
+  "con": 15,
+  "int": 13,
+  "wis": 14,
+  "cha": 9,
+  "skill_proficiencies": [
+    "acrobatics",
+    "athletics",
+    "deception",
+    "insight"
+  ],
+  "armor": "leather armor"
+}

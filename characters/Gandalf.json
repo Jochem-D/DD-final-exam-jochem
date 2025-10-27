@@ -1,0 +1,19 @@
+{
+  "name": "Gandalf",
+  "race": "",
+  "class": "Wizard",
+  "level": 20,
+  "str": 10,
+  "dex": 10,
+  "con": 10,
+  "int": 20,
+  "wis": 18,
+  "cha": 14,
+  "weapon": "Quarterstaff",
+  "spells": [
+    "burning hands"
+  ],
+  "prepared_spells": [
+    "burning hands"
+  ]
+}

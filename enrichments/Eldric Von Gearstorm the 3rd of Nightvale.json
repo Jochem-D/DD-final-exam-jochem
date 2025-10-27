@@ -1,0 +1,20 @@
+{
+  "background": "time-traveler alchemist",
+  "cha": 10,
+  "class": "artificer wizard multiclass",
+  "con": 16,
+  "dex": 18,
+  "enriched": {
+    "equipment": {},
+    "spells": {}
+  },
+  "int": 20,
+  "level": 17,
+  "name": "Eldric Von Gearstorm the 3rd of Nightvale",
+  "prepared_spells": [],
+  "race": "half-gnome cyborg",
+  "skill_proficiencies": [],
+  "spells": [],
+  "str": 12,
+  "wis": 14
+}

@@ -1,0 +1,32 @@
+{
+  "armor": "leather armor",
+  "background": "acolyite",
+  "cha": 9,
+  "class": "rogue",
+  "con": 15,
+  "dex": 16,
+  "enriched": {
+    "equipment": {
+      "leather armor": {
+        "name": "Leather Armor",
+        "category": "Armor",
+        "armor_base": 11,
+        "dex_allowed": true,
+        "price_gp": 10
+      }
+    },
+    "spells": {}
+  },
+  "int": 13,
+  "level": 1,
+  "name": "Karen Farion",
+  "race": "human",
+  "skill_proficiencies": [
+    "acrobatics",
+    "athletics",
+    "deception",
+    "insight"
+  ],
+  "str": 11,
+  "wis": 14
+}

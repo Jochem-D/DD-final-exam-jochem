@@ -1,0 +1,22 @@
+{
+  "name": "test",
+  "race": "",
+  "class": "",
+  "background": "",
+  "level": 1,
+  "str": 10,
+  "dex": 10,
+  "con": 10,
+  "int": 10,
+  "wis": 10,
+  "cha": 10,
+  "skill_proficiencies": [
+    "acrobatics",
+    "arcana",
+    "insight",
+    "performance",
+    "survival"
+  ],
+  "spells": [],
+  "prepared_spells": []
+}

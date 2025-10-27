@@ -1,0 +1,20 @@
+{
+  "background": "",
+  "cha": 14,
+  "class": "ranger",
+  "con": 13,
+  "dex": 14,
+  "enriched": {
+    "equipment": {},
+    "spells": {}
+  },
+  "int": 12,
+  "level": 5,
+  "name": "Aragorn",
+  "prepared_spells": [],
+  "race": "human",
+  "skill_proficiencies": [],
+  "spells": [],
+  "str": 16,
+  "wis": 15
+}

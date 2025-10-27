@@ -1,0 +1,26 @@
+{
+  "background": "",
+  "cha": 10,
+  "class": "",
+  "con": 10,
+  "dex": 10,
+  "enriched": {
+    "equipment": {},
+    "spells": {}
+  },
+  "int": 10,
+  "level": 1,
+  "name": "test",
+  "prepared_spells": [],
+  "race": "",
+  "skill_proficiencies": [
+    "acrobatics",
+    "arcana",
+    "insight",
+    "performance",
+    "survival"
+  ],
+  "spells": [],
+  "str": 10,
+  "wis": 10
+}
