@@ -8144,10 +8144,10 @@ index 0000000..b86f49e
 +}
 diff --git a/internal/presentation/cli/serve_handler.go b/internal/presentation/cli/serve_handler.go
 new file mode 100644
-index 0000000..6b2abca
+index 0000000..b698df6
 --- /dev/null
 +++ b/internal/presentation/cli/serve_handler.go
-@@ -0,0 +1,360 @@
+@@ -0,0 +1,364 @@
 +package cli
 +
 +import (
@@ -8217,10 +8217,14 @@ index 0000000..6b2abca
 +
 +	dataPath := filepath.Join(projectRoot, "data")
 +	charDir := filepath.Join(dataPath, "characters")
++	webPath := filepath.Join(projectRoot, "web", "static")
 +
 +	mux := http.NewServeMux()
 +
-+	// Serve static frontend files
++	// Serve static files (HTML, CSS, JS)
++	fs := http.FileServer(http.Dir(webPath))
++	mux.Handle("/", fs)
++
 +	// Dynamic manifest listing all character JSON files (at both paths for compatibility)
 +	mux.HandleFunc(charactersPath+"manifest.json", h.handleManifest(charDir))
 +	mux.HandleFunc("/frontend/manifest.json", h.handleManifest(charDir))
