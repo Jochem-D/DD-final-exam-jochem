@@ -638,11 +638,13 @@ document.addEventListener("DOMContentLoaded", function () {
         if (seen.has(key)) continue;
         // prefer items that have enriched damage info
         const info = enrichedMap && (enrichedMap[eName] || enrichedMap[eName.toLowerCase()] || enrichedMap[key]);
-        if ((info && info.damage_text) || /sword|dagger|axe|mace|scimitar|shortsword|longsword|bow|crossbow|spear|trident|club|halberd|rapier|whip/i.test(eName)) {
+        if (info?.damage_text || /sword|dagger|axe|mace|scimitar|shortsword|longsword|bow|crossbow|spear|trident|club|halberd|rapier|whip/i.test(eName)) {
           names.push(eName);
           seen.add(key);
         }
-        if (names.length >= 3) break;
+        if (names.length >= 3) {
+          break;
+        }
       }
     }
 
@@ -663,14 +665,11 @@ document.addEventListener("DOMContentLoaded", function () {
         continue;
       }
 
-  // detect equipped status: mark if it came from the compact weapon fields
-  const equipped = (namesPicked.weaponName && namesPicked.weaponName === n) || (namesPicked.offHandName && namesPicked.offHandName === n);
-  // displayName is identical to the item name; keep equipped boolean for future UI markers
-  setIfNotManual(nameField, n);
+      setIfNotManual(nameField, n);
 
       // determine damage text and average from enriched data when available
       let damageText = "";
-      let damageAvg = undefined;
+      let damageAvg;
       const info = enrichedMap && (enrichedMap[n] || enrichedMap[n.toLowerCase()]);
       if (info) {
         if (info.damage_text) damageText = info.damage_text;
@@ -691,18 +690,25 @@ document.addEventListener("DOMContentLoaded", function () {
         const totalAvg = (damageAvg !== undefined && damageAvg !== null) ? (Number(damageAvg) + abilityModVal) : (abilityModVal || undefined);
         let displayDamage = "";
         if (damageText) {
-          const modStr = abilityModVal ? ` ${abilityModVal >= 0 ? '+' : ''}${abilityModVal}` : '';
+          let modStr = '';
+          if (abilityModVal) {
+            const sign = abilityModVal >= 0 ? '+' : '';
+            modStr = ` ${sign}${abilityModVal}`;
+          }
           displayDamage = damageText + (modStr ? (` ${modStr}`) : '');
           if (totalAvg !== undefined) displayDamage += ` (avg ${totalAvg})`;
-        } else {
-          if (totalAvg !== undefined) displayDamage = `(avg ${totalAvg})`;
+        } else if (totalAvg !== undefined) {
+          displayDamage = `(avg ${totalAvg})`;
         }
         setIfNotManual(damageField, displayDamage);
         // store avg as a data attribute for debugging or future UI tweaks
         const dmgEl = form.querySelector(damageField);
         if (dmgEl) {
-          if (totalAvg !== undefined) dmgEl.dataset.avg = String(totalAvg);
-          else delete dmgEl.dataset.avg;
+          if (totalAvg === undefined) {
+            delete dmgEl.dataset.avg;
+          } else {
+            dmgEl.dataset.avg = String(totalAvg);
+          }
         }
 
         if (typeof console !== 'undefined' && console.debug) console.debug('populateAttacks set', nameField, displayName, bonusField, signed(atk), damageField, displayDamage);
