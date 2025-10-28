@@ -11962,10 +11962,10 @@ index 0000000..b86f49e
 +}
 diff --git a/internal/presentation/cli/serve_handler.go b/internal/presentation/cli/serve_handler.go
 new file mode 100644
-index 0000000..3ab4a0e
+index 0000000..6b2abca
 --- /dev/null
 +++ b/internal/presentation/cli/serve_handler.go
-@@ -0,0 +1,362 @@
+@@ -0,0 +1,360 @@
 +package cli
 +
 +import (
@@ -12043,8 +12043,6 @@ index 0000000..3ab4a0e
 +	mux.HandleFunc(charactersPath+"manifest.json", h.handleManifest(charDir))
 +	mux.HandleFunc("/frontend/manifest.json", h.handleManifest(charDir))
 +
-+	// Character CRUD endpoints
-+	mux.HandleFunc(charactersPath, h.handleCharacters(charDir))
 +	// Character CRUD endpoints
 +	mux.HandleFunc(charactersPath, h.handleCharacters(charDir))
 +
