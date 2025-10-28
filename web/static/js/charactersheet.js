@@ -428,6 +428,63 @@ function mergeEquipLinesIntoTextarea(equipEl, equipLines) {
   }
 }
 
+// Helper function to format damage display for attacks
+function formatDamageDisplay(damageText, abilityModVal, totalAvg) {
+  let displayDamage = "";
+  
+  if (damageText) {
+    let modStr = '';
+    if (abilityModVal) {
+      const sign = abilityModVal >= 0 ? '+' : '';
+      modStr = ` ${sign}${abilityModVal}`;
+    }
+    displayDamage = damageText + (modStr ? (` ${modStr}`) : '');
+    if (totalAvg !== undefined) displayDamage += ` (avg ${totalAvg})`;
+  } else if (totalAvg !== undefined) {
+    displayDamage = `(avg ${totalAvg})`;
+  }
+  
+  return displayDamage;
+}
+
+// Helper function to check if item name looks like a weapon
+function isWeaponLikeName(itemName) {
+  return /sword|dagger|axe|mace|scimitar|shortsword|longsword|bow|crossbow|spear|trident|club|halberd|rapier|whip/i.test(itemName);
+}
+
+// Helper function to get enriched info for an item
+function getItemEnrichedInfo(itemName, enrichedMap) {
+  if (!enrichedMap) return null;
+  return enrichedMap[itemName] || enrichedMap[itemName.toLowerCase()];
+}
+
+// Helper function to add initial weapon names
+function addInitialWeaponNames(names, namesPicked) {
+  if (namesPicked.weaponName) names.push(namesPicked.weaponName);
+  if (namesPicked.offHandName && namesPicked.offHandName !== namesPicked.weaponName) {
+    names.push(namesPicked.offHandName);
+  }
+}
+
+// Helper function to determine ability for weapon
+function determineWeaponAbility(weaponName) {
+  const lname = weaponName.toLowerCase();
+  if (/bow|crossbow|sling|dart|shortbow|longbow|hand crossbow/.test(lname)) return "Dexterity";
+  if (/dagger|rapier|scimitar|shortsword|finesse|whip/.test(lname)) return "Dexterity";
+  return "Strength";
+}
+
+// Helper function to get enriched info for weapon
+function getEnrichedInfo(weaponName, enrichedMap) {
+  if (!enrichedMap) return { damageText: "", damageAvg: undefined };
+  
+  const info = enrichedMap[weaponName] || enrichedMap[weaponName.toLowerCase()];
+  return {
+    damageText: info?.damage_text || "",
+    damageAvg: (info?.damage_avg !== undefined && info?.damage_avg !== null) ? info.damage_avg : undefined
+  };
+}
+
 // ---------------- load & wire-up ----------------
 document.addEventListener("DOMContentLoaded", function () {
   const name = qs("name");
@@ -598,6 +655,76 @@ document.addEventListener("DOMContentLoaded", function () {
     if (spellsEl) spellsEl.value = spellsText;
   }
 
+  // Helper function to check if an item should be included as a weapon
+  function shouldIncludeAsWeapon(itemName, enrichedMap) {
+    const info = getItemEnrichedInfo(itemName, enrichedMap);
+    return info?.damage_text || isWeaponLikeName(itemName);
+  }
+
+  // Helper function to collect weapon names from data
+  function collectWeaponNames(data, namesPicked, enrichedMap) {
+    const names = [];
+    addInitialWeaponNames(names, namesPicked);
+
+    const seen = new Set(names.map(s => (s || "").toLowerCase()));
+    
+    if (Array.isArray(data.Equipment)) {
+      for (const entry of data.Equipment) {
+        if (!entry || names.length >= 3) break;
+        const eName = String(entry).trim();
+        if (!eName) continue;
+        const key = eName.toLowerCase();
+        if (seen.has(key)) continue;
+        
+        if (shouldIncludeAsWeapon(eName, enrichedMap)) {
+          names.push(eName);
+          seen.add(key);
+        }
+      }
+    }
+    
+    return names.slice(0, 3);
+  }
+
+  // Helper function to populate a single attack row
+  function populateAttackRow(form, index, weaponName, enrichedMap, readAbility, prof, setIfNotManual) {
+    const nameField = `[name="atkname${index+1}"]`;
+    const bonusField = `[name="atkbonus${index+1}"]`;
+    const damageField = `[name="atkdamage${index+1}"]`;
+
+    if (!weaponName) {
+      setIfNotManual(nameField, "");
+      setIfNotManual(bonusField, "");
+      setIfNotManual(damageField, "");
+      return;
+    }
+
+    setIfNotManual(nameField, weaponName);
+
+    const { damageText, damageAvg } = getEnrichedInfo(weaponName, enrichedMap);
+    const ability = determineWeaponAbility(weaponName);
+    const abilityModVal = readAbility(ability);
+    const atk = abilityModVal + prof;
+    
+    setIfNotManual(bonusField, signed(atk));
+
+    const totalAvg = (damageAvg !== undefined && damageAvg !== null) 
+      ? (Number(damageAvg) + abilityModVal) 
+      : (abilityModVal || undefined);
+    
+    const displayDamage = formatDamageDisplay(damageText, abilityModVal, totalAvg);
+    setIfNotManual(damageField, displayDamage);
+
+    const dmgEl = form.querySelector(damageField);
+    if (dmgEl) {
+      if (totalAvg === undefined) {
+        delete dmgEl.dataset.avg;
+      } else {
+        dmgEl.dataset.avg = String(totalAvg);
+      }
+    }
+  }
+
   // Populate the attacks table (atknameN, atkbonusN, atkdamageN)
   function populateAttacks(data) {
     const form = document.querySelector("form.charsheet");
@@ -610,108 +737,24 @@ document.addEventListener("DOMContentLoaded", function () {
       el.value = v === undefined || v === null ? "" : v;
     };
 
-    // small helpers to read ability mods and prof
     const readAbility = (ability) => {
       const n = readAbilityScore(form, ability);
       return abilityMod(n);
     };
+    
     const prof = readProficiencyBonusOrInfer(form) || 0;
-
-  // get candidate weapon names: prefer explicit weapon/offhand fields
-    const names = [];
     const namesPicked = pickEquipmentNames(data);
-  if (typeof console !== 'undefined' && console.debug) console.debug('populateAttacks namesPicked=', namesPicked);
-    if (namesPicked.weaponName) names.push(namesPicked.weaponName);
-    if (namesPicked.offHandName && namesPicked.offHandName !== namesPicked.weaponName) names.push(namesPicked.offHandName);
-
-    // include any equipment entries that look like weapons or have enriched damage
-    const seen = new Set(names.map(s => (s || "").toLowerCase()));
-    const enrichedMap = (data.enriched && data.enriched.equipment) ? data.enriched.equipment : {};
-  if (typeof console !== 'undefined' && console.debug) console.debug('populateAttacks enriched keys=', Object.keys(enrichedMap));
-
-    if (Array.isArray(data.Equipment)) {
-      for (const entry of data.Equipment) {
-        if (!entry) continue;
-        const eName = String(entry).trim();
-        if (!eName) continue;
-        const key = eName.toLowerCase();
-        if (seen.has(key)) continue;
-        // prefer items that have enriched damage info
-        const info = enrichedMap && (enrichedMap[eName] || enrichedMap[eName.toLowerCase()] || enrichedMap[key]);
-        if (info?.damage_text || /sword|dagger|axe|mace|scimitar|shortsword|longsword|bow|crossbow|spear|trident|club|halberd|rapier|whip/i.test(eName)) {
-          names.push(eName);
-          seen.add(key);
-        }
-        if (names.length >= 3) {
-          break;
-        }
-      }
+    const enrichedMap = data.enriched?.equipment ?? {};
+    
+    if (typeof console !== 'undefined' && console.debug) {
+      console.debug('populateAttacks namesPicked=', namesPicked);
+      console.debug('populateAttacks enriched keys=', Object.keys(enrichedMap));
     }
 
-    // limit to 3 attacks
-    names.length = Math.min(3, names.length);
+    const weaponNames = collectWeaponNames(data, namesPicked, enrichedMap);
 
     for (let i = 0; i < 3; i++) {
-      const n = names[i];
-      const nameField = `[name="atkname${i+1}"]`;
-      const bonusField = `[name="atkbonus${i+1}"]`;
-      const damageField = `[name="atkdamage${i+1}"]`;
-
-      if (!n) {
-        // clear fields when not present and not manual
-        setIfNotManual(nameField, "");
-        setIfNotManual(bonusField, "");
-        setIfNotManual(damageField, "");
-        continue;
-      }
-
-      setIfNotManual(nameField, n);
-
-      // determine damage text and average from enriched data when available
-      let damageText = "";
-      let damageAvg;
-      const info = enrichedMap && (enrichedMap[n] || enrichedMap[n.toLowerCase()]);
-      if (info) {
-        if (info.damage_text) damageText = info.damage_text;
-        if (info.damage_avg !== undefined && info.damage_avg !== null) damageAvg = info.damage_avg;
-      }
-        // heuristic: choose ability based on name / range (must compute before atk and damage avg)
-        let ability = "Strength";
-        const lname = n.toLowerCase();
-        if (/bow|crossbow|sling|dart|shortbow|longbow|hand crossbow/.test(lname)) ability = "Dexterity";
-        if (/dagger|rapier|scimitar|shortsword|finesse|whip|rapier/.test(lname)) ability = "Dexterity";
-
-        const abilityModVal = readAbility(ability);
-        const atk = abilityModVal + prof;
-        setIfNotManual(bonusField, signed(atk));
-
-        // prefer showing dice text followed by ability modifier and average in parentheses when available
-        // include the ability modifier in the displayed average damage (DnD rules: add ability mod to damage)
-        const totalAvg = (damageAvg !== undefined && damageAvg !== null) ? (Number(damageAvg) + abilityModVal) : (abilityModVal || undefined);
-        let displayDamage = "";
-        if (damageText) {
-          let modStr = '';
-          if (abilityModVal) {
-            const sign = abilityModVal >= 0 ? '+' : '';
-            modStr = ` ${sign}${abilityModVal}`;
-          }
-          displayDamage = damageText + (modStr ? (` ${modStr}`) : '');
-          if (totalAvg !== undefined) displayDamage += ` (avg ${totalAvg})`;
-        } else if (totalAvg !== undefined) {
-          displayDamage = `(avg ${totalAvg})`;
-        }
-        setIfNotManual(damageField, displayDamage);
-        // store avg as a data attribute for debugging or future UI tweaks
-        const dmgEl = form.querySelector(damageField);
-        if (dmgEl) {
-          if (totalAvg === undefined) {
-            delete dmgEl.dataset.avg;
-          } else {
-            dmgEl.dataset.avg = String(totalAvg);
-          }
-        }
-
-        if (typeof console !== 'undefined' && console.debug) console.debug('populateAttacks set', nameField, displayName, bonusField, signed(atk), damageField, displayDamage);
+      populateAttackRow(form, i, weaponNames[i], enrichedMap, readAbility, prof, setIfNotManual);
     }
   }
   // live updates
