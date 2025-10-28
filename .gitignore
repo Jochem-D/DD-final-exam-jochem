@@ -7,6 +7,9 @@ ddsheetfinal
 data/cache/
 data/enrichments/
 
+# Environment variables
+.env
+
 # IDE
 .vscode/
 .idea/

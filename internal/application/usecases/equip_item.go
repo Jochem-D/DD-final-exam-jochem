@@ -7,13 +7,18 @@ import (
 	"ddsheetfinal/internal/domain/repositories"
 )
 
+const (
+	slotMainHand = "main hand"
+	slotOffHand  = "off hand"
+)
+
 // EquipItemInput contains the input for equipping items
 type EquipItemInput struct {
 	CharacterName string
 	Weapon        string
 	Armor         string
 	Shield        string
-	Slot          string // "main hand" or "off hand" for weapons
+	Slot          string // slotMainHand or slotOffHand for weapons
 }
 
 // EquipItemUseCase handles equipping items to a character
@@ -51,15 +56,15 @@ func (uc *EquipItemUseCase) Execute(input EquipItemInput) error {
 
 		slot := uc.normalizeSlot(input.Slot)
 		if slot == "" {
-			slot = "main hand"
+			slot = slotMainHand
 		}
 
-		if slot == "main hand" {
+		if slot == slotMainHand {
 			if character.Weapon != "" {
 				return fmt.Errorf("main hand already occupied")
 			}
 			character.Weapon = input.Weapon
-		} else if slot == "off hand" {
+		} else if slot == slotOffHand {
 			if character.OffHand != "" {
 				return fmt.Errorf("off hand already occupied")
 			}
@@ -106,9 +111,9 @@ func (uc *EquipItemUseCase) normalizeSlot(slot string) string {
 	s := strings.ToLower(strings.TrimSpace(slot))
 	switch s {
 	case "main", "main hand", "main-hand", "mainhand":
-		return "main hand"
+		return slotMainHand
 	case "off", "off hand", "off-hand", "offhand":
-		return "off hand"
+		return slotOffHand
 	default:
 		return s
 	}

@@ -10,6 +10,11 @@ import (
 	"ddsheetfinal/internal/domain/repositories"
 )
 
+const (
+	errFailedReadSpellsCSV = "failed to read spells CSV: %w"
+	errFailedOpenSpellsCSV = "failed to open spells CSV: %w"
+)
+
 // CSVSRDRepository implements SRDRepository using CSV files
 type CSVSRDRepository struct {
 	equipmentCSVPath string
@@ -95,14 +100,14 @@ func (r *CSVSRDRepository) IsSpellForClass(spellName, className string) (bool, e
 	
 	f, err := os.Open(r.spellsCSVPath)
 	if err != nil {
-		return false, fmt.Errorf("failed to open spells CSV: %w", err)
+		return false, fmt.Errorf(errFailedOpenSpellsCSV, err)
 	}
 	defer f.Close()
 	
 	reader := csv.NewReader(f)
 	records, err := reader.ReadAll()
 	if err != nil {
-		return false, fmt.Errorf("failed to read spells CSV: %w", err)
+		return false, fmt.Errorf(errFailedReadSpellsCSV, err)
 	}
 	
 	// CSV format: name,level,class
@@ -132,14 +137,14 @@ func (r *CSVSRDRepository) GetLearnableSpells(className string, knownSpells []st
 	
 	f, err := os.Open(r.spellsCSVPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open spells CSV: %w", err)
+		return nil, fmt.Errorf(errFailedOpenSpellsCSV, err)
 	}
 	defer f.Close()
 	
 	reader := csv.NewReader(f)
 	records, err := reader.ReadAll()
 	if err != nil {
-		return nil, fmt.Errorf("failed to read spells CSV: %w", err)
+		return nil, fmt.Errorf(errFailedReadSpellsCSV, err)
 	}
 	
 	// CSV format: name,level,class
@@ -228,14 +233,14 @@ func (r *CSVSRDRepository) GetSpellLevel(spellName string) (int, error) {
 	
 	f, err := os.Open(r.spellsCSVPath)
 	if err != nil {
-		return 0, fmt.Errorf("failed to open spells CSV: %w", err)
+		return 0, fmt.Errorf(errFailedOpenSpellsCSV, err)
 	}
 	defer f.Close()
 	
 	reader := csv.NewReader(f)
 	records, err := reader.ReadAll()
 	if err != nil {
-		return 0, fmt.Errorf("failed to read spells CSV: %w", err)
+		return 0, fmt.Errorf(errFailedReadSpellsCSV, err)
 	}
 	
 	for _, rec := range records {
