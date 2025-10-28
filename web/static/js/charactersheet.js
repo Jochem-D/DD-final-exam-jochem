@@ -307,18 +307,23 @@ function renderDerived(form) {
   // avoid leaving non-numeric placeholders in the AC field. If the server returns fields
   // we set them; otherwise we silently keep local values.
   (async function doServerDerive() {
+    // Extract just the character_name for the API
+    const derivePayload = { character_name: payload.character_name || payload.name || payload.Name };
+    console.log('doServerDerive called with payload:', derivePayload);
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 1500);
     try {
       const res = await fetch("/api/derive", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(derivePayload),
         signal: controller.signal,
       });
       clearTimeout(timeout);
+      console.log('Server derive response status:', res.status);
       if (!res.ok) return; // leave local values intact
       const obj = await res.json();
+      console.log('Server derive response data:', obj);
       if (!obj) return;
 
       // helper to set a field only when present and not manually edited
