@@ -67,10 +67,14 @@ func (h *ServeHandler) Handle(args []string) {
 
 	dataPath := filepath.Join(projectRoot, "data")
 	charDir := filepath.Join(dataPath, "characters")
+	webPath := filepath.Join(projectRoot, "web", "static")
 
 	mux := http.NewServeMux()
 
-	// Serve static frontend files
+	// Serve static files (HTML, CSS, JS)
+	fs := http.FileServer(http.Dir(webPath))
+	mux.Handle("/", fs)
+
 	// Dynamic manifest listing all character JSON files (at both paths for compatibility)
 	mux.HandleFunc(charactersPath+"manifest.json", h.handleManifest(charDir))
 	mux.HandleFunc("/frontend/manifest.json", h.handleManifest(charDir))
