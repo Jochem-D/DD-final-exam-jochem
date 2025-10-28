@@ -77,8 +77,6 @@ func (h *ServeHandler) Handle(args []string) {
 
 	// Character CRUD endpoints
 	mux.HandleFunc(charactersPath, h.handleCharacters(charDir))
-	// Character CRUD endpoints
-	mux.HandleFunc(charactersPath, h.handleCharacters(charDir))
 
 	// API: Derive endpoint (compute AC, saves, etc.)
 	mux.HandleFunc("/api/derive", h.handleDerive())
