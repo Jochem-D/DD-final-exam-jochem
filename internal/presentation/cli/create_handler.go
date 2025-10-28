@@ -41,8 +41,19 @@ func (h *CreateHandler) Handle(args []string) {
 }
 
 func (h *CreateHandler) parseFlags(args []string) (dtos.CreateCharacterDTO, error) {
-	// Simple flag parsing (in production, use flag package or a library)
-	input := dtos.CreateCharacterDTO{
+	input := h.getDefaultCharacter()
+
+	for i := 0; i < len(args); i++ {
+		if i+1 < len(args) {
+			i = h.parseFlag(args[i], args[i+1], &input, i)
+		}
+	}
+
+	return h.validateInput(input)
+}
+
+func (h *CreateHandler) getDefaultCharacter() dtos.CreateCharacterDTO {
+	return dtos.CreateCharacterDTO{
 		Level:      1,
 		Str:        10,
 		Dex:        10,
@@ -52,77 +63,58 @@ func (h *CreateHandler) parseFlags(args []string) (dtos.CreateCharacterDTO, erro
 		Cha:        10,
 		Background: "acolyte",
 	}
+}
 
-	for i := 0; i < len(args); i++ {
-		switch args[i] {
-		case "-name":
-			if i+1 < len(args) {
-				input.Name = args[i+1]
-				i++
-			}
-		case "-race":
-			if i+1 < len(args) {
-				input.Race = args[i+1]
-				i++
-			}
-		case "-class":
-			if i+1 < len(args) {
-				input.Class = args[i+1]
-				i++
-			}
-		case "-background":
-			if i+1 < len(args) {
-				input.Background = args[i+1]
-				i++
-			}
-		case "-level":
-			if i+1 < len(args) {
-				fmt.Sscanf(args[i+1], "%d", &input.Level)
-				i++
-			}
-		case "-str":
-			if i+1 < len(args) {
-				fmt.Sscanf(args[i+1], "%d", &input.Str)
-				i++
-			}
-		case "-dex":
-			if i+1 < len(args) {
-				fmt.Sscanf(args[i+1], "%d", &input.Dex)
-				i++
-			}
-		case "-con":
-			if i+1 < len(args) {
-				fmt.Sscanf(args[i+1], "%d", &input.Con)
-				i++
-			}
-		case "-int":
-			if i+1 < len(args) {
-				fmt.Sscanf(args[i+1], "%d", &input.Int)
-				i++
-			}
-		case "-wis":
-			if i+1 < len(args) {
-				fmt.Sscanf(args[i+1], "%d", &input.Wis)
-				i++
-			}
-		case "-cha":
-			if i+1 < len(args) {
-				fmt.Sscanf(args[i+1], "%d", &input.Cha)
-				i++
-			}
-		case "-skills":
-			if i+1 < len(args) {
-				skillsStr := args[i+1]
-				input.Skills = strings.Split(skillsStr, ",")
-				for j := range input.Skills {
-					input.Skills[j] = strings.TrimSpace(input.Skills[j])
-				}
-				i++
-			}
-		}
+func (h *CreateHandler) parseFlag(flag, value string, input *dtos.CreateCharacterDTO, currentIndex int) int {
+	switch flag {
+	case "-name":
+		input.Name = value
+		return currentIndex + 1
+	case "-race":
+		input.Race = value
+		return currentIndex + 1
+	case "-class":
+		input.Class = value
+		return currentIndex + 1
+	case "-background":
+		input.Background = value
+		return currentIndex + 1
+	case "-level":
+		fmt.Sscanf(value, "%d", &input.Level)
+		return currentIndex + 1
+	case "-str":
+		fmt.Sscanf(value, "%d", &input.Str)
+		return currentIndex + 1
+	case "-dex":
+		fmt.Sscanf(value, "%d", &input.Dex)
+		return currentIndex + 1
+	case "-con":
+		fmt.Sscanf(value, "%d", &input.Con)
+		return currentIndex + 1
+	case "-int":
+		fmt.Sscanf(value, "%d", &input.Int)
+		return currentIndex + 1
+	case "-wis":
+		fmt.Sscanf(value, "%d", &input.Wis)
+		return currentIndex + 1
+	case "-cha":
+		fmt.Sscanf(value, "%d", &input.Cha)
+		return currentIndex + 1
+	case "-skills":
+		h.parseSkills(value, input)
+		return currentIndex + 1
 	}
+	return currentIndex
+}
 
-	// Validate required fields
+func (h *CreateHandler) parseSkills(skillsStr string, input *dtos.CreateCharacterDTO) {
+	input.Skills = strings.Split(skillsStr, ",")
+	for j := range input.Skills {
+		input.Skills[j] = strings.TrimSpace(input.Skills[j])
+	}
+}
+
+func (h *CreateHandler) validateInput(input dtos.CreateCharacterDTO) (dtos.CreateCharacterDTO, error) {
 	if input.Name == "" {
 		return input, fmt.Errorf("name is required")
 	}
@@ -132,6 +124,5 @@ func (h *CreateHandler) parseFlags(args []string) (dtos.CreateCharacterDTO, erro
 	if input.Class == "" {
 		return input, fmt.Errorf("class is required")
 	}
-
 	return input, nil
 }

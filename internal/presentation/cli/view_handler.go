@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"ddsheetfinal/internal/application/dtos"
 	"ddsheetfinal/internal/application/usecases"
 )
 
@@ -75,45 +76,10 @@ func (h *ViewHandler) displayCharacter(output *usecases.ViewCharacterOutput) {
 	}
 
 	// Spell slots (from output)
-	if output.SpellSlots != nil {
-		hasSlots := false
-		for _, slots := range output.SpellSlots {
-			if slots > 0 {
-				hasSlots = true
-				break
-			}
-		}
-		if hasSlots {
-			fmt.Println("Spell slots:")
-			for i, slots := range output.SpellSlots {
-				if slots > 0 {
-					// Index 0 is cantrips (Level 0), rest are spell levels
-					fmt.Printf("  Level %d: %d\n", i, slots)
-				}
-			}
-			
-			// Spellcasting information from output
-			if output.SpellcastingAbility != "" {
-				fmt.Printf("Spellcasting ability: %s\n", output.SpellcastingAbility)
-				fmt.Printf("Spell save DC: %d\n", output.SpellSaveDC)
-				fmt.Printf("Spell attack bonus: +%d\n", output.SpellAttackBonus)
-			}
-		}
-	}
+	h.displaySpellSlots(output)
 
 	// Equipment (no "Equipment:" header, just list items)
-	if char.Weapon != "" {
-		fmt.Printf("Main hand: %s\n", char.Weapon)
-	}
-	if char.OffHand != "" {
-		fmt.Printf("Off hand: %s\n", char.OffHand)
-	}
-	if char.Armor != "" {
-		fmt.Printf("Armor: %s\n", char.Armor)
-	}
-	if char.Shield != "" {
-		fmt.Printf("Shield: %s\n", char.Shield)
-	}
+	h.displayEquipment(char)
 
 	// Derived stats
 	fmt.Printf("Armor class: %d\n", output.ArmorClass)
@@ -126,5 +92,53 @@ func (h *ViewHandler) displayCharacter(output *usecases.ViewCharacterOutput) {
 	}
 	if len(char.PreparedSpells) > 0 {
 		fmt.Printf("Prepared spells: %s\n", strings.Join(char.PreparedSpells, ", "))
+	}
+}
+
+func (h *ViewHandler) displaySpellSlots(output *usecases.ViewCharacterOutput) {
+	if output.SpellSlots == nil {
+		return
+	}
+
+	hasSlots := false
+	for _, slots := range output.SpellSlots {
+		if slots > 0 {
+			hasSlots = true
+			break
+		}
+	}
+
+	if !hasSlots {
+		return
+	}
+
+	fmt.Println("Spell slots:")
+	for i, slots := range output.SpellSlots {
+		if slots > 0 {
+			// Index 0 is cantrips (Level 0), rest are spell levels
+			fmt.Printf("  Level %d: %d\n", i, slots)
+		}
+	}
+
+	// Spellcasting information from output
+	if output.SpellcastingAbility != "" {
+		fmt.Printf("Spellcasting ability: %s\n", output.SpellcastingAbility)
+		fmt.Printf("Spell save DC: %d\n", output.SpellSaveDC)
+		fmt.Printf("Spell attack bonus: +%d\n", output.SpellAttackBonus)
+	}
+}
+
+func (h *ViewHandler) displayEquipment(char *dtos.CharacterDTO) {
+	if char.Weapon != "" {
+		fmt.Printf("Main hand: %s\n", char.Weapon)
+	}
+	if char.OffHand != "" {
+		fmt.Printf("Off hand: %s\n", char.OffHand)
+	}
+	if char.Armor != "" {
+		fmt.Printf("Armor: %s\n", char.Armor)
+	}
+	if char.Shield != "" {
+		fmt.Printf("Shield: %s\n", char.Shield)
 	}
 }

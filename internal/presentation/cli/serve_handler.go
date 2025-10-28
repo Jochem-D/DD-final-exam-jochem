@@ -14,6 +14,15 @@ import (
 	"time"
 )
 
+const charactersPath = "/characters/"
+
+const (
+	jsonExtension   = ".json"
+	jsonContentType = "application/json"
+	headerContentType = "Content-Type"
+	errMethodNotAllowed = "method not allowed"
+)
+
 // ServeHandler handles the HTTP server command
 type ServeHandler struct {
 	getCharacterUseCase    *usecases.GetCharacterUseCase
@@ -56,21 +65,20 @@ func (h *ServeHandler) Handle(args []string) {
 		log.Fatal("Failed to get working directory:", err)
 	}
 
-	webDir := filepath.Join(projectRoot, "web", "static")
-	dataDir := filepath.Join(projectRoot, "data")
-	charDir := filepath.Join(dataDir, "characters")
+	dataPath := filepath.Join(projectRoot, "data")
+	charDir := filepath.Join(dataPath, "characters")
 
 	mux := http.NewServeMux()
 
 	// Serve static frontend files
-	mux.Handle("/", http.FileServer(http.Dir(webDir)))
-
 	// Dynamic manifest listing all character JSON files (at both paths for compatibility)
-	mux.HandleFunc("/characters/manifest.json", h.handleManifest(charDir))
+	mux.HandleFunc(charactersPath+"manifest.json", h.handleManifest(charDir))
 	mux.HandleFunc("/frontend/manifest.json", h.handleManifest(charDir))
 
 	// Character CRUD endpoints
-	mux.HandleFunc("/characters/", h.handleCharacters(charDir))
+	mux.HandleFunc(charactersPath, h.handleCharacters(charDir))
+	// Character CRUD endpoints
+	mux.HandleFunc(charactersPath, h.handleCharacters(charDir))
 
 	// API: Derive endpoint (compute AC, saves, etc.)
 	mux.HandleFunc("/api/derive", h.handleDerive())
@@ -92,25 +100,26 @@ func (h *ServeHandler) handleManifest(charDir string) http.HandlerFunc {
 			http.Error(w, "cannot read characters directory", http.StatusInternalServerError)
 			return
 		}
+		
 		var out []string
 		for _, e := range entries {
 			if e.IsDir() {
 				continue
 			}
 			name := e.Name()
-			if strings.HasSuffix(strings.ToLower(name), ".json") {
-				out = append(out, "/characters/"+name)
+			if strings.HasSuffix(strings.ToLower(name), jsonExtension) {
+				out = append(out, charactersPath+name)
 			}
 		}
-		w.Header().Set("Content-Type", "application/json")
+		
+		w.Header().Set(headerContentType, jsonContentType)
 		json.NewEncoder(w).Encode(out)
 	}
 }
-
 // handleCharacters returns a handler for GET/PUT/DELETE on character files
 func (h *ServeHandler) handleCharacters(charDir string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		rel := strings.TrimPrefix(r.URL.Path, "/characters/")
+		rel := strings.TrimPrefix(r.URL.Path, charactersPath)
 		rel = strings.TrimPrefix(rel, "/")
 		if rel == "" || rel == "manifest.json" {
 			http.Error(w, "missing filename", http.StatusBadRequest)
@@ -123,7 +132,7 @@ func (h *ServeHandler) handleCharacters(charDir string) http.HandlerFunc {
 		}
 		
 		// Extract character name (remove .json extension)
-		charName := strings.TrimSuffix(rel, ".json")
+		charName := strings.TrimSuffix(rel, jsonExtension)
 
 		switch r.Method {
 		case http.MethodGet:
@@ -134,7 +143,7 @@ func (h *ServeHandler) handleCharacters(charDir string) http.HandlerFunc {
 				return
 			}
 			
-			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set(headerContentType, jsonContentType)
 			json.NewEncoder(w).Encode(charDTO)
 			return
 
@@ -179,7 +188,7 @@ func (h *ServeHandler) handleCharacters(charDir string) http.HandlerFunc {
 			return
 
 		default:
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			http.Error(w, errMethodNotAllowed, http.StatusMethodNotAllowed)
 			return
 		}
 	}
@@ -189,7 +198,7 @@ func (h *ServeHandler) handleCharacters(charDir string) http.HandlerFunc {
 func (h *ServeHandler) handleDerive() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			http.Error(w, errMethodNotAllowed, http.StatusMethodNotAllowed)
 			return
 		}
 
@@ -233,7 +242,7 @@ func (h *ServeHandler) handleDerive() http.HandlerFunc {
 			},
 		}
 
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set(headerContentType, jsonContentType)
 		json.NewEncoder(w).Encode(result)
 	}
 }
@@ -242,7 +251,7 @@ func (h *ServeHandler) handleDerive() http.HandlerFunc {
 func (h *ServeHandler) handleEnrich() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			http.Error(w, errMethodNotAllowed, http.StatusMethodNotAllowed)
 			return
 		}
 
@@ -329,7 +338,7 @@ func (h *ServeHandler) handleEnrich() http.HandlerFunc {
 		projectRoot, _ := os.Getwd()
 		enrichDir := filepath.Join(projectRoot, "data", "enrichments")
 		os.MkdirAll(enrichDir, 0755)
-		enrichPath := filepath.Join(enrichDir, name+".json")
+		enrichPath := filepath.Join(enrichDir, name+jsonExtension)
 		
 		enrichedJSON, err := json.MarshalIndent(enrichedChar, "", "  ")
 		if err == nil {
@@ -347,7 +356,7 @@ func (h *ServeHandler) handleEnrich() http.HandlerFunc {
 			"output_path":    enrichPath,
 		}
 
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set(headerContentType, jsonContentType)
 		json.NewEncoder(w).Encode(result)
 	}
 }

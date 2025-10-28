@@ -232,7 +232,7 @@ function cloneCharacterData(src) {
       if (obj === null) return null;
       if (typeof obj !== 'object') return obj;
       if (seen.has(obj)) return seen.get(obj);
-  if (obj instanceof Date) return new Date(obj);
+      if (obj instanceof Date) return new Date(obj);
       if (Array.isArray(obj)) {
         const out = [];
         seen.set(obj, out);
@@ -297,7 +297,7 @@ function renderDerived(form) {
 
   // Add character_name for the derive API endpoint
   const charNameEl = form.querySelector('[name="charname"]');
-  if (charNameEl && charNameEl.value) {
+  if (charNameEl?.value) {
     payload.character_name = charNameEl.value;
   } else if (payload.name || payload.Name) {
     payload.character_name = payload.name || payload.Name;
@@ -363,19 +363,75 @@ function renderDerived(form) {
   })();
 }
 
+// Helper function to get query parameter
+function qs(param) { 
+  return new URLSearchParams(location.search).get(param); 
+}
+
+// Helper function to fetch JSON with error handling
+async function tryFetchJson(url) {
+  try {
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) {
+      console.error(`Failed to fetch ${url}: ${res.status} ${res.statusText}`);
+      return null;
+    }
+    return await res.json();
+  } catch (e) {
+    console.error(`Error fetching ${url}:`, e);
+    return null;
+  }
+}
+
+// Helper function to pick equipment names from character data
+function pickEquipmentNames(data) {
+  const getVal = (candidates) => {
+    for (const k of candidates) {
+      if (data[k] !== undefined && data[k] !== null && String(data[k]).trim() !== "") return String(data[k]);
+    }
+    return "";
+  };
+  return {
+    weaponName: getVal(["weapon", "Weapon", "WeaponName", "mainhand", "main_hand"]),
+    armorName: getVal(["armor", "Armor", "ArmorName"]),
+    shieldName: getVal(["shield", "Shield", "offhand", "off_hand", "OffHand"]),
+    offHandName: getVal(["off_hand", "offhand", "OffHand"]),
+  };
+}
+
+// Helper function to build equipment lines from names
+function buildEquipLines({weaponName, armorName, shieldName, offHandName}) {
+  const lines = [];
+  if (weaponName) lines.push(`Weapon: ${weaponName}`);
+  if (armorName)  lines.push(`Armor: ${armorName}`);
+  if (offHandName) lines.push(`Off-hand: ${offHandName}`);
+  else if (shieldName) lines.push(`Shield: ${shieldName}`);
+  return lines;
+}
+
+// Helper function to merge equipment lines into textarea without duplicates
+function mergeEquipLinesIntoTextarea(equipEl, equipLines) {
+  // Inject into equipment textarea; avoid duplicates and preserve user-entered lines
+  const existing = equipEl.value ? String(equipEl.value).split(/\r?\n/).map(s => s.trim()).filter(Boolean) : [];
+  const existingLower = new Set(existing.map(e => e.toLowerCase()));
+  const toPrepend = [];
+  const toPrependLower = new Set();
+  for (const line of equipLines) {
+    const key = line.toLowerCase();
+    if (!existingLower.has(key) && !toPrependLower.has(key)) {
+      toPrepend.push(line);
+      toPrependLower.add(key);
+    }
+  }
+  if (toPrepend.length) {
+    equipEl.value = toPrepend.join("\n") + (existing.length ? "\n" + existing.join("\n") : "");
+  }
+}
+
 // ---------------- load & wire-up ----------------
 document.addEventListener("DOMContentLoaded", function () {
-  function qs(param) { return new URLSearchParams(location.search).get(param); }
   const name = qs("name");
   if (!name) return;
-
-  async function tryFetchJson(url) {
-    try {
-      const res = await fetch(url, { cache: "no-store" });
-      if (!res.ok) return null;
-      return await res.json();
-    } catch (e) { return null; }
-  }
 
   
 
@@ -419,7 +475,7 @@ document.addEventListener("DOMContentLoaded", function () {
           }
         }
     } catch (e) {
-      // ignore and fall back to the non-enriched data
+      console.warn(`Failed to load enriched data for ${name}, falling back to base data:`, e);
     }
 
     // fallback: use the plain character data
@@ -456,7 +512,11 @@ document.addEventListener("DOMContentLoaded", function () {
     setIf("charname", data.Name || data.name || "");
     const cls = data.Class || data.class || "";
     const lvl = data.Level || data.level || "";
-    setIf("classlevel", cls ? (cls + (lvl ? " " + lvl : "")) : "");
+    let classLevel = "";
+    if (cls) {
+      classLevel = lvl ? `${cls} ${lvl}` : cls;
+    }
+    setIf("classlevel", classLevel);
     setIf("background", data.Background || data.background || "");
     setIf("playername", data.Player || data.player || "");
     setIf("race", data.Race || data.race || "");
@@ -512,48 +572,6 @@ document.addEventListener("DOMContentLoaded", function () {
   // small helpers to keep cognitive complexity low
   function getEquipElement() {
     return document.querySelector('textarea[name="equipment"]');
-  }
-
-  function pickEquipmentNames(data) {
-    const getVal = (candidates) => {
-      for (const k of candidates) {
-        if (data[k] !== undefined && data[k] !== null && String(data[k]).trim() !== "") return String(data[k]);
-      }
-      return "";
-    };
-    return {
-      weaponName: getVal(["weapon", "Weapon", "WeaponName", "mainhand", "main_hand"]),
-      armorName: getVal(["armor", "Armor", "ArmorName"]),
-      shieldName: getVal(["shield", "Shield", "offhand", "off_hand", "OffHand"]),
-      offHandName: getVal(["off_hand", "offhand", "OffHand"]),
-    };
-  }
-
-  function buildEquipLines({weaponName, armorName, shieldName, offHandName}) {
-    const lines = [];
-    if (weaponName) lines.push(`Weapon: ${weaponName}`);
-    if (armorName)  lines.push(`Armor: ${armorName}`);
-    if (offHandName) lines.push(`Off-hand: ${offHandName}`);
-    else if (shieldName) lines.push(`Shield: ${shieldName}`);
-    return lines;
-  }
-
-  function mergeEquipLinesIntoTextarea(equipEl, equipLines) {
-    // Inject into equipment textarea; avoid duplicates and preserve user-entered lines
-    const existing = equipEl.value ? String(equipEl.value).split(/\r?\n/).map(s => s.trim()).filter(Boolean) : [];
-    const existingLower = new Set(existing.map(e => e.toLowerCase()));
-    const toPrepend = [];
-    const toPrependLower = new Set();
-    for (const line of equipLines) {
-      const key = line.toLowerCase();
-      if (!existingLower.has(key) && !toPrependLower.has(key)) {
-        toPrepend.push(line);
-        toPrependLower.add(key);
-      }
-    }
-    if (toPrepend.length) {
-      equipEl.value = toPrepend.join("\n") + (existing.length ? "\n" + existing.join("\n") : "");
-    }
   }
 
   function injectEquippedItems(data) {

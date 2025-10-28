@@ -1,36 +1,69 @@
 package valueobjects
 
+// Ability score constants
+const (
+	abilityStr = "str"
+	abilityDex = "dex"
+	abilityCon = "con"
+	abilityInt = "int"
+	abilityWis = "wis"
+	abilityCha = "cha"
+)
+
+// Skill constants
+const (
+	skillAthletics      = "athletics"
+	skillInsight        = "insight"
+	skillReligion       = "religion"
+	skillIntimidation   = "intimidation"
+	skillHistory        = "history"
+	skillSurvival       = "survival"
+	skillPersuasion     = "persuasion"
+	skillPerception     = "perception"
+	skillStealth        = "stealth"
+	skillMedicine       = "medicine"
+	skillDeception      = "deception"
+	skillArcana         = "arcana"
+	skillAnimalHandling = "animal handling"
+	skillSlightOfHand   = "sleight of hand"
+)
+
+// Class constants
+const (
+	classWizard = "wizard"
+)
+
 // ClassSkillProficiencies maps class names to their available skill proficiencies
 var ClassSkillProficiencies = map[string][]string{
-	"barbarian": {"animal handling", "athletics", "intimidation", "nature", "perception", "survival"},
-	"bard":      {"acrobatics", "animal handling", "arcana", "athletics", "deception", "history", "insight", "intimidation", "investigation", "medicine", "nature", "perception", "performance", "persuasion", "religion", "sleight of hand", "stealth", "survival"},
-	"cleric":    {"history", "insight", "medicine", "persuasion", "religion"},
-	"druid":     {"arcana", "animal handling", "insight", "medicine", "nature", "perception", "religion", "survival"},
-	"fighter":   {"acrobatics", "animal handling", "athletics", "history", "insight", "intimidation", "perception", "survival"},
-	"monk":      {"acrobatics", "athletics", "history", "insight", "religion", "stealth"},
-	"paladin":   {"athletics", "insight", "intimidation", "medicine", "persuasion", "religion"},
-	"ranger":    {"animal handling", "athletics", "insight", "investigation", "nature", "perception", "stealth", "survival"},
-	"rogue":     {"acrobatics", "athletics", "deception", "insight", "intimidation", "investigation", "perception", "performance", "persuasion", "sleight of hand", "stealth"},
-	"sorcerer":  {"arcana", "deception", "insight", "intimidation", "persuasion", "religion"},
-	"warlock":   {"arcana", "deception", "history", "intimidation", "investigation", "nature", "religion"},
-	"wizard":    {"arcana", "history", "insight", "investigation", "medicine", "religion"},
+	"barbarian": {skillAnimalHandling, skillAthletics, skillIntimidation, "nature", skillPerception, skillSurvival},
+	"bard":      {"acrobatics", skillAnimalHandling, skillArcana, skillAthletics, skillDeception, skillHistory, skillInsight, skillIntimidation, "investigation", skillMedicine, "nature", skillPerception, "performance", skillPersuasion, skillReligion, skillSlightOfHand, skillStealth, skillSurvival},
+	"cleric":    {skillHistory, skillInsight, skillMedicine, skillPersuasion, skillReligion},
+	"druid":     {skillArcana, skillAnimalHandling, skillInsight, skillMedicine, "nature", skillPerception, skillReligion, skillSurvival},
+	"fighter":   {"acrobatics", skillAnimalHandling, skillAthletics, skillHistory, skillInsight, skillIntimidation, skillPerception, skillSurvival},
+	"monk":      {"acrobatics", skillAthletics, skillHistory, skillInsight, skillReligion, skillStealth},
+	"paladin":   {skillAthletics, skillInsight, skillIntimidation, skillMedicine, skillPersuasion, skillReligion},
+	"ranger":    {skillAnimalHandling, skillAthletics, skillInsight, "investigation", "nature", skillPerception, skillStealth, skillSurvival},
+	"rogue":     {"acrobatics", skillAthletics, skillDeception, skillInsight, skillIntimidation, "investigation", skillPerception, "performance", skillPersuasion, skillSlightOfHand, skillStealth},
+	"sorcerer":  {skillArcana, skillDeception, skillInsight, skillIntimidation, skillPersuasion, skillReligion},
+	"warlock":   {skillArcana, skillDeception, skillHistory, skillIntimidation, "investigation", "nature", skillReligion},
+	classWizard: {skillArcana, skillHistory, skillInsight, "investigation", skillMedicine, skillReligion},
 }
 
 // BackgroundSkillProficiencies maps background names to their skill proficiencies
 var BackgroundSkillProficiencies = map[string][]string{
-	"acolyte":       {"insight", "religion"},
-	"charlatan":     {"deception", "sleight of hand"},
-	"criminal":      {"deception", "stealth"},
+	"acolyte":       {skillInsight, skillReligion},
+	"charlatan":     {skillDeception, skillSlightOfHand},
+	"criminal":      {skillDeception, skillStealth},
 	"entertainer":   {"acrobatics", "performance"},
-	"folk hero":     {"animal handling", "survival"},
-	"guild artisan": {"insight", "persuasion"},
-	"hermit":        {"medicine", "religion"},
-	"noble":         {"history", "persuasion"},
-	"outlander":     {"athletics", "survival"},
-	"sage":          {"arcana", "history"},
-	"sailor":        {"athletics", "perception"},
-	"soldier":       {"athletics", "intimidation"},
-	"urchin":        {"sleight of hand", "stealth"},
+	"folk hero":     {skillAnimalHandling, skillSurvival},
+	"guild artisan": {skillInsight, skillPersuasion},
+	"hermit":        {skillMedicine, skillReligion},
+	"noble":         {skillHistory, skillPersuasion},
+	"outlander":     {skillAthletics, skillSurvival},
+	"sage":          {skillArcana, skillHistory},
+	"sailor":        {skillAthletics, skillPerception},
+	"soldier":       {skillAthletics, skillIntimidation},
+	"urchin":        {skillSlightOfHand, skillStealth},
 }
 
 // ClassSkillChoices maps class names to the number of skill choices they get
@@ -41,64 +74,64 @@ var ClassSkillChoices = map[string]int{
 
 // RacialAbilityBonuses maps race names to their ability score bonuses
 var RacialAbilityBonuses = map[string]map[string]int{
-	"dwarf":              {"con": 2},
-	"hill dwarf":         {"con": 2, "wis": 1},
-	"mountain dwarf":     {"con": 2, "str": 2},
-	"elf":                {"dex": 2},
-	"high elf":           {"dex": 2, "int": 1},
-	"wood elf":           {"dex": 2, "wis": 1},
-	"dark elf":           {"dex": 2, "cha": 1},
-	"halfling":           {"dex": 2},
-	"lightfoot halfling": {"dex": 2, "cha": 1},
-	"stout halfling":     {"dex": 2, "con": 1},
-	"human":              {"str": 1, "dex": 1, "con": 1, "int": 1, "wis": 1, "cha": 1},
-	"dragonborn":         {"str": 2, "cha": 1},
-	"gnome":              {"int": 2},
-	"forest gnome":       {"int": 2, "dex": 1},
-	"rock gnome":         {"int": 2, "con": 1},
-	"half-elf":           {"cha": 2, "choice1": 1, "choice2": 1},
-	"half elf":           {"cha": 2, "choice1": 1, "choice2": 1},
-	"half-orc":           {"str": 2, "con": 1},
-	"half orc":           {"str": 2, "con": 1},
-	"tiefling":           {"cha": 2, "int": 1},
+	"dwarf":              {abilityCon: 2},
+	"hill dwarf":         {abilityCon: 2, abilityWis: 1},
+	"mountain dwarf":     {abilityCon: 2, abilityStr: 2},
+	"elf":                {abilityDex: 2},
+	"high elf":           {abilityDex: 2, abilityInt: 1},
+	"wood elf":           {abilityDex: 2, abilityWis: 1},
+	"dark elf":           {abilityDex: 2, abilityCha: 1},
+	"halfling":           {abilityDex: 2},
+	"lightfoot halfling": {abilityDex: 2, abilityCha: 1},
+	"stout halfling":     {abilityDex: 2, abilityCon: 1},
+	"human":              {abilityStr: 1, abilityDex: 1, abilityCon: 1, abilityInt: 1, abilityWis: 1, abilityCha: 1},
+	"dragonborn":         {abilityStr: 2, abilityCha: 1},
+	"gnome":              {abilityInt: 2},
+	"forest gnome":       {abilityInt: 2, abilityDex: 1},
+	"rock gnome":         {abilityInt: 2, abilityCon: 1},
+	"half-elf":           {abilityCha: 2, "choice1": 1, "choice2": 1},
+	"half elf":           {abilityCha: 2, "choice1": 1, "choice2": 1},
+	"half-orc":           {abilityStr: 2, abilityCon: 1},
+	"half orc":           {abilityStr: 2, abilityCon: 1},
+	"tiefling":           {abilityCha: 2, abilityInt: 1},
 }
 
 // ClassSavingThrowProficiencies maps class names to their saving throw proficiencies
 var ClassSavingThrowProficiencies = map[string][]string{
-	"barbarian": {"str", "con"},
-	"bard":      {"dex", "cha"},
-	"cleric":    {"wis", "cha"},
-	"druid":     {"int", "wis"},
-	"fighter":   {"str", "con"},
-	"monk":      {"str", "dex"},
-	"paladin":   {"wis", "cha"},
-	"ranger":    {"str", "dex"},
-	"rogue":     {"dex", "int"},
-	"sorcerer":  {"con", "cha"},
-	"warlock":   {"wis", "cha"},
-	"wizard":    {"int", "wis"},
+	"barbarian": {abilityStr, abilityCon},
+	"bard":      {abilityDex, abilityCha},
+	"cleric":    {abilityWis, abilityCha},
+	"druid":     {abilityInt, abilityWis},
+	"fighter":   {abilityStr, abilityCon},
+	"monk":      {abilityStr, abilityDex},
+	"paladin":   {abilityWis, abilityCha},
+	"ranger":    {abilityStr, abilityDex},
+	"rogue":     {abilityDex, abilityInt},
+	"sorcerer":  {abilityCon, abilityCha},
+	"warlock":   {abilityWis, abilityCha},
+	classWizard: {abilityInt, abilityWis},
 }
 
 // SkillToAbility maps skill names to their governing ability
 var SkillToAbility = map[string]string{
-	"acrobatics":      "dex",
-	"animal handling": "wis",
-	"arcana":          "int",
-	"athletics":       "str",
-	"deception":       "cha",
-	"history":         "int",
-	"insight":         "wis",
-	"intimidation":    "cha",
-	"investigation":   "int",
-	"medicine":        "wis",
-	"nature":          "int",
-	"perception":      "wis",
-	"performance":     "cha",
-	"persuasion":      "cha",
-	"religion":        "int",
-	"sleight of hand": "dex",
-	"stealth":         "dex",
-	"survival":        "wis",
+	"acrobatics":      abilityDex,
+	"animal handling": abilityWis,
+	"arcana":          abilityInt,
+	"athletics":       abilityStr,
+	"deception":       abilityCha,
+	"history":         abilityInt,
+	"insight":         abilityWis,
+	"intimidation":    abilityCha,
+	"investigation":   abilityInt,
+	"medicine":        abilityWis,
+	"nature":          abilityInt,
+	"perception":      abilityWis,
+	"performance":     abilityCha,
+	"persuasion":      abilityCha,
+	"religion":        abilityInt,
+	"sleight of hand": abilityDex,
+	"stealth":         abilityDex,
+	"survival":        abilityWis,
 }
 
 // ClassCantrips maps class names to their starting cantrips

@@ -74,57 +74,64 @@ func (uc *CreateCharacterUseCase) buildSkillList(input dtos.CreateCharacterDTO) 
 	classLower := strings.ToLower(input.Class)
 	backgroundLower := strings.ToLower(input.Background)
 
-	// Start with background skills (allow duplicates for correct output)
-	bgSkills := valueobjects.BackgroundSkillProficiencies[backgroundLower]
-	result := make([]string, 0)
-	for _, s := range bgSkills {
-		result = append(result, s)
-	}
+	// Start with background skills
+	result := uc.getBackgroundSkills(backgroundLower)
 
-	// If skills are provided, validate and add them
+	// Add class skills
 	if len(input.Skills) > 0 {
-		classSkills := valueobjects.ClassSkillProficiencies[classLower]
-		classSkillMap := make(map[string]bool)
-		for _, s := range classSkills {
-			classSkillMap[s] = true
-		}
-
-		for _, skill := range input.Skills {
-			skillLower := strings.ToLower(strings.TrimSpace(skill))
-			if !classSkillMap[skillLower] {
-				return nil, fmt.Errorf("skill '%s' is not available to the %s class", skill, input.Class)
-			}
-			result = append(result, skillLower)
-		}
-
-		// Check number of skills
-		numClassSkills := valueobjects.ClassSkillChoices[classLower]
-		providedSkills := len(input.Skills)
-		if providedSkills != numClassSkills {
-			return nil, fmt.Errorf("class %s requires exactly %d skill proficiencies, got %d", input.Class, numClassSkills, providedSkills)
+		if err := uc.addProvidedSkills(&result, input.Skills, classLower, input.Class); err != nil {
+			return nil, err
 		}
 	} else {
-		// Auto-assign class skills
-		classSkills := valueobjects.ClassSkillProficiencies[classLower]
-		numNeeded := valueobjects.ClassSkillChoices[classLower]
-
-		assigned := 0
-		for _, skill := range classSkills {
-			// Don't check for duplicates - add skills even if background already has them
-			if assigned < numNeeded {
-				result = append(result, skill)
-				assigned++
-			}
-			if assigned >= numNeeded {
-				break
-			}
-		}
+		uc.autoAssignClassSkills(&result, classLower)
 	}
 
 	// Sort the list
 	sort.Strings(result)
 
 	return result, nil
+}
+
+func (uc *CreateCharacterUseCase) getBackgroundSkills(backgroundLower string) []string {
+	bgSkills := valueobjects.BackgroundSkillProficiencies[backgroundLower]
+	result := make([]string, 0, len(bgSkills))
+	for _, s := range bgSkills {
+		result = append(result, s)
+	}
+	return result
+}
+
+func (uc *CreateCharacterUseCase) addProvidedSkills(result *[]string, skills []string, classLower, className string) error {
+	classSkills := valueobjects.ClassSkillProficiencies[classLower]
+	classSkillMap := make(map[string]bool)
+	for _, s := range classSkills {
+		classSkillMap[s] = true
+	}
+
+	for _, skill := range skills {
+		skillLower := strings.ToLower(strings.TrimSpace(skill))
+		if !classSkillMap[skillLower] {
+			return fmt.Errorf("skill '%s' is not available to the %s class", skill, className)
+		}
+		*result = append(*result, skillLower)
+	}
+
+	// Check number of skills
+	numClassSkills := valueobjects.ClassSkillChoices[classLower]
+	if len(skills) != numClassSkills {
+		return fmt.Errorf("class %s requires exactly %d skill proficiencies, got %d", className, numClassSkills, len(skills))
+	}
+
+	return nil
+}
+
+func (uc *CreateCharacterUseCase) autoAssignClassSkills(result *[]string, classLower string) {
+	classSkills := valueobjects.ClassSkillProficiencies[classLower]
+	numNeeded := valueobjects.ClassSkillChoices[classLower]
+
+	for i := 0; i < numNeeded && i < len(classSkills); i++ {
+		*result = append(*result, classSkills[i])
+	}
 }
 
 func (uc *CreateCharacterUseCase) applyRacialBonuses(input dtos.CreateCharacterDTO) (str, dex, con, intScore, wis, cha int) {
