@@ -1,5 +1,11 @@
 # Compiled binary
 ddsheet
+ddsheetfinal
+
+# Cache and temporary data
+.cache/
+data/cache/
+data/enrichments/
 
 # IDE
 .vscode/

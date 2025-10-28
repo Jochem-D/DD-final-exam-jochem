@@ -41,6 +41,9 @@ func NewDND5EAPIEnrichmentRepository(cacheDir string) repositories.EnrichmentRep
 func (r *DND5EAPIEnrichmentRepository) FetchSpellInfo(ctx context.Context, spellIndex string) (*repositories.SpellInfo, error) {
 	// Try cache first
 	cache, _ := r.LoadSpellCache()
+	if cache == nil {
+		cache = make(map[string]repositories.SpellInfo)
+	}
 	if info, ok := cache[spellIndex]; ok {
 		return &info, nil
 	}
@@ -80,6 +83,9 @@ func (r *DND5EAPIEnrichmentRepository) FetchSpellInfo(ctx context.Context, spell
 func (r *DND5EAPIEnrichmentRepository) FetchEquipmentInfo(ctx context.Context, equipmentIndex string) (*repositories.EquipmentInfo, error) {
 	// Try cache first
 	cache, _ := r.LoadEquipmentCache()
+	if cache == nil {
+		cache = make(map[string]repositories.EquipmentInfo)
+	}
 	if info, ok := cache[equipmentIndex]; ok {
 		return &info, nil
 	}
