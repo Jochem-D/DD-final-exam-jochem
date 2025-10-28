@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"ddsheetfinal/internal/domain/repositories"
+	"ddsheetfinal/internal/domain/valueobjects"
 )
 
 // LearnSpellUseCase handles learning new spells
@@ -59,6 +60,27 @@ func (uc *LearnSpellUseCase) Execute(characterName, spellName string) error {
 		return fmt.Errorf("'%s' is not available to the %s class", spellName, classLower)
 	}
 
+	// Check if character has spell slots for this level
+	spellLevel, err := uc.srdRepo.GetSpellLevel(spellName)
+	if err != nil {
+		return fmt.Errorf("error getting spell level: %w", err)
+	}
+	
+	// Get character's available spell slots
+	spellSlots := valueobjects.GetSpellSlots(classLower, character.Level)
+	if spellSlots == nil {
+		return fmt.Errorf("this class can't cast spells")
+	}
+	
+	// Check if they have slots for this spell level (skip cantrips at index 0)
+	if spellLevel > 0 && spellLevel < len(spellSlots) {
+		if spellSlots[spellLevel] == 0 {
+			return fmt.Errorf("the spell has higher level than the available spell slots")
+		}
+	} else if spellLevel >= len(spellSlots) {
+		return fmt.Errorf("the spell has higher level than the available spell slots")
+	}
+
 	// Check if already learned
 	for _, s := range character.Spells {
 		if strings.EqualFold(s, spellName) {
@@ -75,21 +97,9 @@ func (uc *LearnSpellUseCase) Execute(characterName, spellName string) error {
 }
 
 func (uc *LearnSpellUseCase) isCasterClass(class string) bool {
-	casters := []string{"bard", "cleric", "druid", "paladin", "ranger", "sorcerer", "warlock", "wizard"}
-	for _, c := range casters {
-		if c == class {
-			return true
-		}
-	}
-	return false
+	return valueobjects.IsSpellcaster(class)
 }
 
 func (uc *LearnSpellUseCase) isPreparedClass(class string) bool {
-	prepared := []string{"cleric", "druid", "paladin", "wizard"}
-	for _, c := range prepared {
-		if c == class {
-			return true
-		}
-	}
-	return false
+	return valueobjects.IsPreparedCaster(class)
 }

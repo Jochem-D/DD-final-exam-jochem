@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"ddsheetfinal/internal/application/dtos"
 	"ddsheetfinal/internal/application/usecases"
 )
 
@@ -30,17 +31,18 @@ func (h *CreateHandler) Handle(args []string) {
 	}
 
 	// Execute use case
-	if err := h.createCharacterUseCase.Execute(input); err != nil {
+	result, err := h.createCharacterUseCase.Execute(input)
+	if err != nil {
 		fmt.Println("Error creating character:", err)
 		os.Exit(1)
 	}
 
-	fmt.Printf("saved character %s\n", input.Name)
+	fmt.Printf("saved character %s\n", result.Name)
 }
 
-func (h *CreateHandler) parseFlags(args []string) (usecases.CreateCharacterInput, error) {
+func (h *CreateHandler) parseFlags(args []string) (dtos.CreateCharacterDTO, error) {
 	// Simple flag parsing (in production, use flag package or a library)
-	input := usecases.CreateCharacterInput{
+	input := dtos.CreateCharacterDTO{
 		Level:      1,
 		Str:        10,
 		Dex:        10,

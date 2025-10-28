@@ -22,7 +22,7 @@ func NewListHandler(listCharactersUseCase *usecases.ListCharactersUseCase) *List
 // Handle processes the list command
 func (h *ListHandler) Handle(args []string) {
 	// Execute use case
-	names, err := h.listCharactersUseCase.Execute()
+	result, err := h.listCharactersUseCase.Execute()
 	if err != nil {
 		fmt.Println("Error listing characters:", err)
 		os.Exit(1)
@@ -30,10 +30,10 @@ func (h *ListHandler) Handle(args []string) {
 
 	// Display results
 	fmt.Println("Characters:")
-	if len(names) == 0 {
+	if len(result.Names) == 0 {
 		fmt.Println("  (none found)")
 	} else {
-		for _, name := range names {
+		for _, name := range result.Names {
 			fmt.Printf(" - %s\n", name)
 		}
 	}

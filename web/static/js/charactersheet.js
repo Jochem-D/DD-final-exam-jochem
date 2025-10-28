@@ -295,6 +295,14 @@ function renderDerived(form) {
     payload.enriched = globalThis.__characterData.enriched;
   }
 
+  // Add character_name for the derive API endpoint
+  const charNameEl = form.querySelector('[name="charname"]');
+  if (charNameEl && charNameEl.value) {
+    payload.character_name = charNameEl.value;
+  } else if (payload.name || payload.Name) {
+    payload.character_name = payload.name || payload.Name;
+  }
+
   // Optional backend derive: use async/await with AbortController and a short timeout to
   // avoid leaving non-numeric placeholders in the AC field. If the server returns fields
   // we set them; otherwise we silently keep local values.
@@ -332,7 +340,7 @@ function renderDerived(form) {
         set("Charismamod", obj.ability_mods.Charisma);
       }
       // prof bonus
-      setIf('[name="proficiencybonus"]', obj.proficiency_bonus);
+      setIf('[name="proficiencybonus"]', obj.proficiency_bonus, (x) => (x >= 0 ? "+" : "") + x);
       // initiative & passive perception
       setIf('[name="initiative"]', obj.initiative);
       setIf('[name="passiveperception"]', obj.passive_perception);

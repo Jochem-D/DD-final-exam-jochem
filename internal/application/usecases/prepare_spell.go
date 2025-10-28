@@ -7,6 +7,7 @@ import (
 
 	"ddsheetfinal/internal/domain/entities"
 	"ddsheetfinal/internal/domain/repositories"
+	"ddsheetfinal/internal/domain/valueobjects"
 )
 
 // PrepareSpellInput contains input for preparing/unpreparing spells
@@ -19,11 +20,13 @@ type PrepareSpellInput struct {
 // PrepareSpellUseCase handles preparing and unpreparing spells
 type PrepareSpellUseCase struct {
 	characterRepo repositories.CharacterRepository
+	srdRepo       repositories.SRDRepository
 }
 
-func NewPrepareSpellUseCase(characterRepo repositories.CharacterRepository) *PrepareSpellUseCase {
+func NewPrepareSpellUseCase(characterRepo repositories.CharacterRepository, srdRepo repositories.SRDRepository) *PrepareSpellUseCase {
 	return &PrepareSpellUseCase{
 		characterRepo: characterRepo,
+		srdRepo:       srdRepo,
 	}
 }
 
@@ -35,17 +38,45 @@ func (uc *PrepareSpellUseCase) Execute(input PrepareSpellInput) error {
 		return err
 	}
 
-	// Check if spell is in the character's learned spells
-	spellLearned := false
-	for _, s := range character.Spells {
-		if strings.EqualFold(s, input.SpellName) {
-			spellLearned = true
-			break
-		}
+	// Check if class can cast spells
+	classLower := strings.ToLower(character.Class)
+	if !valueobjects.IsSpellcaster(classLower) {
+		return fmt.Errorf("this class can't cast spells")
 	}
 
-	if !spellLearned {
-		return fmt.Errorf("spell '%s' is not in %s's learned spells", input.SpellName, character.Name)
+	// Check if class prepares spells (vs learning them)
+	if !valueobjects.IsPreparedCaster(classLower) {
+		return fmt.Errorf("this class learns spells and can't prepare them")
+	}
+
+	// For prepared casters, check if spell is valid for their class
+	isValid, err := uc.srdRepo.IsSpellForClass(input.SpellName, character.Class)
+	if err != nil {
+		return err
+	}
+	if !isValid {
+		return fmt.Errorf("spell '%s' is not available to the %s class", input.SpellName, character.Class)
+	}
+
+	// Check if character has spell slots for this level
+	spellLevel, err := uc.srdRepo.GetSpellLevel(input.SpellName)
+	if err != nil {
+		return fmt.Errorf("error getting spell level: %w", err)
+	}
+	
+	// Get character's available spell slots
+	spellSlots := valueobjects.GetSpellSlots(classLower, character.Level)
+	if spellSlots == nil {
+		return fmt.Errorf("this class can't cast spells")
+	}
+	
+	// Check if they have slots for this spell level (skip cantrips at index 0)
+	if spellLevel > 0 && spellLevel < len(spellSlots) {
+		if spellSlots[spellLevel] == 0 {
+			return fmt.Errorf("the spell has higher level than the available spell slots")
+		}
+	} else if spellLevel >= len(spellSlots) {
+		return fmt.Errorf("the spell has higher level than the available spell slots")
 	}
 
 	if input.Remove {

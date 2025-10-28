@@ -105,18 +105,17 @@ func (r *CSVSRDRepository) IsSpellForClass(spellName, className string) (bool, e
 		return false, fmt.Errorf("failed to read spells CSV: %w", err)
 	}
 	
+	// CSV format: name,level,class
 	// Find the spell and check if the class is in its class list
 	for i, rec := range records {
-		if i == 0 || len(rec) < 2 {
+		if i == 0 || len(rec) < 3 {
 			continue // skip header or invalid rows
 		}
 		name := r.canonKey(rec[0])
 		if name == key {
-			// Classes are typically in column 1 (index 1)
-			if len(rec) > 1 {
-				classList := strings.ToLower(rec[1])
-				return strings.Contains(classList, classLower), nil
-			}
+			// Classes are in column 2 (index 2)
+			classList := strings.ToLower(rec[2])
+			return strings.Contains(classList, classLower), nil
 		}
 	}
 	
@@ -143,10 +142,11 @@ func (r *CSVSRDRepository) GetLearnableSpells(className string, knownSpells []st
 		return nil, fmt.Errorf("failed to read spells CSV: %w", err)
 	}
 	
+	// CSV format: name,level,class
 	var learnable []string
 	for i, rec := range records {
-		if i == 0 || len(rec) < 2 {
-			continue // skip header
+		if i == 0 || len(rec) < 3 {
+			continue // skip header or invalid rows
 		}
 		name := rec[0]
 		key := r.canonKey(name)
@@ -156,8 +156,8 @@ func (r *CSVSRDRepository) GetLearnableSpells(className string, knownSpells []st
 			continue
 		}
 		
-		// Check if available to class
-		classList := strings.ToLower(rec[1])
+		// Check if available to class (column 2)
+		classList := strings.ToLower(rec[2])
 		if strings.Contains(classList, classLower) {
 			learnable = append(learnable, name)
 		}
@@ -219,4 +219,37 @@ func (r *CSVSRDRepository) equipAlternates(key string) []string {
 		uniq = append(uniq, k)
 	}
 	return uniq
+}
+
+// GetSpellLevel returns the level of a spell (0-9)
+// CSV format: name,level,class
+func (r *CSVSRDRepository) GetSpellLevel(spellName string) (int, error) {
+	key := r.canonKey(spellName)
+	
+	f, err := os.Open(r.spellsCSVPath)
+	if err != nil {
+		return 0, fmt.Errorf("failed to open spells CSV: %w", err)
+	}
+	defer f.Close()
+	
+	reader := csv.NewReader(f)
+	records, err := reader.ReadAll()
+	if err != nil {
+		return 0, fmt.Errorf("failed to read spells CSV: %w", err)
+	}
+	
+	for _, rec := range records {
+		if len(rec) < 2 {
+			continue
+		}
+		name := r.canonKey(rec[0])
+		if name == key {
+			// Parse level from column 1
+			level := 0
+			fmt.Sscanf(rec[1], "%d", &level)
+			return level, nil
+		}
+	}
+	
+	return 0, fmt.Errorf("spell '%s' not found", spellName)
 }

@@ -37,4 +37,7 @@ type SRDRepository interface {
 	
 	// GetLearnableSpells returns spells a character can learn
 	GetLearnableSpells(className string, knownSpells []string) ([]string, error)
+	
+	// GetSpellLevel returns the level of a spell (0-9)
+	GetSpellLevel(spellName string) (int, error)
 }

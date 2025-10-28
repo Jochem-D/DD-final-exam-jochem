@@ -22,6 +22,8 @@ type Container struct {
 	// Use Cases
 	CreateCharacterUseCase      *usecases.CreateCharacterUseCase
 	ViewCharacterUseCase        *usecases.ViewCharacterUseCase
+	GetCharacterUseCase         *usecases.GetCharacterUseCase
+	SaveCharacterUseCase        *usecases.SaveCharacterUseCase
 	DeleteCharacterUseCase      *usecases.DeleteCharacterUseCase
 	ListCharactersUseCase       *usecases.ListCharactersUseCase
 	EquipItemUseCase            *usecases.EquipItemUseCase
@@ -30,7 +32,8 @@ type Container struct {
 	PrepareSpellUseCase         *usecases.PrepareSpellUseCase
 	GetLearnableSpellsUseCase   *usecases.GetLearnableSpellsUseCase
 	EnrichCharacterUseCase      *usecases.EnrichCharacterUseCase
-	ServeHTTPUseCase            *usecases.ServeHTTPUseCase
+	DeriveStatsUseCase          *usecases.DeriveCharacterStatsUseCase
+	EnrichDataUseCase           *usecases.EnrichDataUseCase
 
 	// CLI Handlers
 	CreateHandler          *cli.CreateHandler
@@ -62,15 +65,18 @@ func NewContainer(charactersDir, equipmentCSV, spellsCSV, cacheDir string) *Cont
 	// Initialize use cases (Application layer)
 	c.CreateCharacterUseCase = usecases.NewCreateCharacterUseCase(c.CharacterRepo)
 	c.ViewCharacterUseCase = usecases.NewViewCharacterUseCase(c.CharacterRepo, c.CharacterService)
+	c.GetCharacterUseCase = usecases.NewGetCharacterUseCase(c.CharacterRepo)
+	c.SaveCharacterUseCase = usecases.NewSaveCharacterUseCase(c.CharacterRepo)
 	c.DeleteCharacterUseCase = usecases.NewDeleteCharacterUseCase(c.CharacterRepo)
 	c.ListCharactersUseCase = usecases.NewListCharactersUseCase(c.CharacterRepo)
 	c.EquipItemUseCase = usecases.NewEquipItemUseCase(c.CharacterRepo, c.SRDRepo)
 	c.UnequipItemUseCase = usecases.NewUnequipItemUseCase(c.CharacterRepo)
 	c.LearnSpellUseCase = usecases.NewLearnSpellUseCase(c.CharacterRepo, c.SRDRepo)
-	c.PrepareSpellUseCase = usecases.NewPrepareSpellUseCase(c.CharacterRepo)
+	c.PrepareSpellUseCase = usecases.NewPrepareSpellUseCase(c.CharacterRepo, c.SRDRepo)
 	c.GetLearnableSpellsUseCase = usecases.NewGetLearnableSpellsUseCase(c.CharacterRepo, c.SRDRepo)
 	c.EnrichCharacterUseCase = usecases.NewEnrichCharacterUseCase(c.CharacterRepo, c.EnrichmentRepo)
-	c.ServeHTTPUseCase = usecases.NewServeHTTPUseCase(c.CharacterRepo, c.SRDRepo, c.EnrichmentRepo, c.CharacterService)
+	c.DeriveStatsUseCase = usecases.NewDeriveCharacterStatsUseCase(c.CharacterRepo, c.CharacterService)
+	c.EnrichDataUseCase = usecases.NewEnrichDataUseCase(c.EnrichmentRepo)
 
 	// Initialize CLI handlers (Presentation layer)
 	c.CreateHandler = cli.NewCreateHandler(c.CreateCharacterUseCase)
@@ -83,7 +89,14 @@ func NewContainer(charactersDir, equipmentCSV, spellsCSV, cacheDir string) *Cont
 	c.PrepareSpellHandler = cli.NewPrepareSpellHandler(c.PrepareSpellUseCase)
 	c.LearnableSpellsHandler = cli.NewLearnableSpellsHandler(c.GetLearnableSpellsUseCase)
 	c.HelpHandler = cli.NewHelpHandler()
-	c.ServeHandler = cli.NewServeHandler(c.ServeHTTPUseCase)
+	c.ServeHandler = cli.NewServeHandler(
+		c.GetCharacterUseCase,
+		c.SaveCharacterUseCase,
+		c.DeleteCharacterUseCase,
+		c.ListCharactersUseCase,
+		c.DeriveStatsUseCase,
+		c.EnrichDataUseCase,
+	)
 	c.EnrichHandler = cli.NewEnrichHandler(c.EnrichCharacterUseCase)
 
 	return c

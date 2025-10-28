@@ -190,12 +190,16 @@ func (uc *EnrichCharacterUseCase) FetchAllReferences(ctx context.Context) error 
 
 func (uc *EnrichCharacterUseCase) collectSpellNames(char *entities.Character) []string {
 	set := make(map[string]struct{})
+	
+	// Collect from known spells
 	for _, spell := range char.Spells {
 		spell = strings.TrimSpace(spell)
 		if spell != "" {
 			set[spell] = struct{}{}
 		}
 	}
+	
+	// Collect from prepared spells
 	for _, spell := range char.PreparedSpells {
 		spell = strings.TrimSpace(spell)
 		if spell != "" {
@@ -203,17 +207,13 @@ func (uc *EnrichCharacterUseCase) collectSpellNames(char *entities.Character) []
 		}
 	}
 	
-	names := make([]string, 0, len(set))
-	for name := range set {
-		names = append(names, name)
-	}
-	sort.Strings(names)
-	return names
+	return setToSortedSlice(set)
 }
 
 func (uc *EnrichCharacterUseCase) collectEquipmentNames(char *entities.Character) []string {
 	set := make(map[string]struct{})
 	
+	// Collect from equipment slots
 	if char.Weapon != "" {
 		set[char.Weapon] = struct{}{}
 	}
@@ -226,6 +226,8 @@ func (uc *EnrichCharacterUseCase) collectEquipmentNames(char *entities.Character
 	if char.Shield != "" {
 		set[char.Shield] = struct{}{}
 	}
+	
+	// Collect from inventory
 	for _, item := range char.Inventory {
 		item = strings.TrimSpace(item)
 		if item != "" {
@@ -233,6 +235,11 @@ func (uc *EnrichCharacterUseCase) collectEquipmentNames(char *entities.Character
 		}
 	}
 	
+	return setToSortedSlice(set)
+}
+
+// setToSortedSlice converts a set (map) to a sorted slice
+func setToSortedSlice(set map[string]struct{}) []string {
 	names := make([]string, 0, len(set))
 	for name := range set {
 		names = append(names, name)

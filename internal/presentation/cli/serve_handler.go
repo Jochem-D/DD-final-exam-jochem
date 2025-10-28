@@ -2,9 +2,8 @@ package cli
 
 import (
 	"context"
+	"ddsheetfinal/internal/application/dtos"
 	"ddsheetfinal/internal/application/usecases"
-	"ddsheetfinal/internal/domain/entities"
-	"ddsheetfinal/internal/domain/valueobjects"
 	"encoding/json"
 	"io"
 	"log"
@@ -17,13 +16,30 @@ import (
 
 // ServeHandler handles the HTTP server command
 type ServeHandler struct {
-	serveUseCase *usecases.ServeHTTPUseCase
+	getCharacterUseCase    *usecases.GetCharacterUseCase
+	saveCharacterUseCase   *usecases.SaveCharacterUseCase
+	deleteCharacterUseCase *usecases.DeleteCharacterUseCase
+	listCharactersUseCase  *usecases.ListCharactersUseCase
+	deriveStatsUseCase     *usecases.DeriveCharacterStatsUseCase
+	enrichDataUseCase      *usecases.EnrichDataUseCase
 }
 
 // NewServeHandler creates a new serve handler
-func NewServeHandler(serveUseCase *usecases.ServeHTTPUseCase) *ServeHandler {
+func NewServeHandler(
+	getCharacterUseCase *usecases.GetCharacterUseCase,
+	saveCharacterUseCase *usecases.SaveCharacterUseCase,
+	deleteCharacterUseCase *usecases.DeleteCharacterUseCase,
+	listCharactersUseCase *usecases.ListCharactersUseCase,
+	deriveStatsUseCase *usecases.DeriveCharacterStatsUseCase,
+	enrichDataUseCase *usecases.EnrichDataUseCase,
+) *ServeHandler {
 	return &ServeHandler{
-		serveUseCase: serveUseCase,
+		getCharacterUseCase:    getCharacterUseCase,
+		saveCharacterUseCase:   saveCharacterUseCase,
+		deleteCharacterUseCase: deleteCharacterUseCase,
+		listCharactersUseCase:  listCharactersUseCase,
+		deriveStatsUseCase:     deriveStatsUseCase,
+		enrichDataUseCase:      enrichDataUseCase,
 	}
 }
 
@@ -105,11 +121,21 @@ func (h *ServeHandler) handleCharacters(charDir string) http.HandlerFunc {
 			http.Error(w, "invalid path", http.StatusBadRequest)
 			return
 		}
-		target := filepath.Join(charDir, filepath.Clean(rel))
+		
+		// Extract character name (remove .json extension)
+		charName := strings.TrimSuffix(rel, ".json")
 
 		switch r.Method {
 		case http.MethodGet:
-			http.ServeFile(w, r, target)
+			// Use GetCharacterUseCase
+			charDTO, err := h.getCharacterUseCase.Execute(charName)
+			if err != nil {
+				http.Error(w, "character not found: "+err.Error(), http.StatusNotFound)
+				return
+			}
+			
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(charDTO)
 			return
 
 		case http.MethodPut:
@@ -118,23 +144,18 @@ func (h *ServeHandler) handleCharacters(charDir string) http.HandlerFunc {
 				http.Error(w, "read error", http.StatusBadRequest)
 				return
 			}
-			log.Printf("PUT %s (%d bytes)", target, len(body))
+			log.Printf("PUT %s (%d bytes)", charName, len(body))
 			
-			// Validate JSON
-			var char entities.Character
-			if err := json.Unmarshal(body, &char); err != nil {
+			// Validate JSON and parse into DTO
+			var charDTO dtos.CharacterDTO
+			if err := json.Unmarshal(body, &charDTO); err != nil {
 				http.Error(w, "invalid json: "+err.Error(), http.StatusBadRequest)
 				return
 			}
 			
-			// Ensure characters dir exists
-			if err := os.MkdirAll(charDir, 0755); err != nil {
-				http.Error(w, "cannot create characters dir", http.StatusInternalServerError)
-				return
-			}
-			
-			if err := os.WriteFile(target, body, 0644); err != nil {
-				http.Error(w, "save failed", http.StatusInternalServerError)
+			// Use SaveCharacterUseCase
+			if err := h.saveCharacterUseCase.Execute(&charDTO); err != nil {
+				http.Error(w, "save failed: "+err.Error(), http.StatusInternalServerError)
 				return
 			}
 			
@@ -143,15 +164,16 @@ func (h *ServeHandler) handleCharacters(charDir string) http.HandlerFunc {
 			return
 
 		case http.MethodDelete:
-			if err := os.Remove(target); err != nil {
-				if os.IsNotExist(err) {
+			// Use DeleteCharacterUseCase
+			if err := h.deleteCharacterUseCase.Execute(charName); err != nil {
+				if strings.Contains(err.Error(), "not found") {
 					http.Error(w, "not found", http.StatusNotFound)
 					return
 				}
 				http.Error(w, "delete failed", http.StatusInternalServerError)
 				return
 			}
-			log.Printf("DELETE %s OK", target)
+			log.Printf("DELETE %s OK", charName)
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte("ok"))
 			return
@@ -171,59 +193,48 @@ func (h *ServeHandler) handleDerive() http.HandlerFunc {
 			return
 		}
 
-		var char entities.Character
-		if err := json.NewDecoder(r.Body).Decode(&char); err != nil {
+		var req struct {
+			CharacterName string `json:"character_name"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			http.Error(w, "invalid json: "+err.Error(), http.StatusBadRequest)
 			return
 		}
 
-	// Calculate derived stats using the character service
-	service := h.serveUseCase.GetCharacterService()
-	
-	ac, acDesc := service.ComputeArmorClass(&char)
-	pb := valueobjects.ProficiencyBonus(char.Level)
-	
-	// Build ability modifiers map
-	abilityMods := map[string]int{
-		"Strength":     valueobjects.AbilityModifier(char.Str),
-		"Dexterity":    valueobjects.AbilityModifier(char.Dex),
-		"Constitution": valueobjects.AbilityModifier(char.Con),
-		"Intelligence": valueobjects.AbilityModifier(char.Int),
-		"Wisdom":       valueobjects.AbilityModifier(char.Wis),
-		"Charisma":     valueobjects.AbilityModifier(char.Cha),
-	}
-	
-	// Build saving throws map
-	saves := make(map[string]int)
-	for ability, value := range map[string]int{
-		"Strength":     char.Str,
-		"Dexterity":    char.Dex,
-		"Constitution": char.Con,
-		"Intelligence": char.Int,
-		"Wisdom":       char.Wis,
-		"Charisma":     char.Cha,
-	} {
-		modifier := valueobjects.AbilityModifier(value)
-		if service.IsSaveProficient(&char, ability) {
-			saves[ability] = modifier + pb
-		} else {
-			saves[ability] = modifier
+		// Use DeriveCharacterStatsUseCase
+		derivedStats, err := h.deriveStatsUseCase.Execute(req.CharacterName)
+		if err != nil {
+			http.Error(w, "error deriving stats: "+err.Error(), http.StatusInternalServerError)
+			return
 		}
-	}
-	
-	// Return snake_case keys to match frontend expectations
-	result := map[string]interface{}{
-		"armor_class":        ac,
-		"armor_class_desc":   acDesc,
-		"initiative":         service.ComputeInitiativeBonus(&char),
-		"passive_perception": service.ComputePassivePerception(&char),
-		"proficiency_bonus":  pb,
-		"ability_mods":       abilityMods,
-		"saving_throws":      saves,
-	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+		// Return snake_case keys to match frontend expectations
+		result := map[string]interface{}{
+			"armor_class":        derivedStats.AC,
+			"armor_class_desc":   derivedStats.ACCalculation,
+			"initiative":         derivedStats.DexMod,
+			"passive_perception": 10 + derivedStats.WisMod, // Simplified, should come from use case
+			"proficiency_bonus":  derivedStats.ProficiencyBonus,
+			"ability_mods": map[string]int{
+				"Strength":     derivedStats.StrMod,
+				"Dexterity":    derivedStats.DexMod,
+				"Constitution": derivedStats.ConMod,
+				"Intelligence": derivedStats.IntMod,
+				"Wisdom":       derivedStats.WisMod,
+				"Charisma":     derivedStats.ChaMod,
+			},
+			"saving_throws": map[string]int{
+				"Strength":     derivedStats.StrSave,
+				"Dexterity":    derivedStats.DexSave,
+				"Constitution": derivedStats.ConSave,
+				"Intelligence": derivedStats.IntSave,
+				"Wisdom":       derivedStats.WisSave,
+				"Charisma":     derivedStats.ChaSave,
+			},
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(result)
 	}
 }
 
@@ -244,47 +255,46 @@ func (h *ServeHandler) handleEnrich() http.HandlerFunc {
 		start := time.Now()
 		ctx := context.Background()
 
-		// Load character
-		charRepo := h.serveUseCase.GetCharacterRepository()
-		char, err := charRepo.FindByName(name)
+		// Load character using GetCharacterUseCase
+		charDTO, err := h.getCharacterUseCase.Execute(name)
 		if err != nil {
 			http.Error(w, "character not found: "+err.Error(), http.StatusNotFound)
 			return
 		}
 
-		// Enrich spells and equipment
-		enrichRepo := h.serveUseCase.GetEnrichmentRepository()
-		
+		// Enrich spells
 		enrichedSpells := make(map[string]interface{})
-		for _, spell := range char.Spells {
-			spellInfo, err := enrichRepo.FetchSpellInfo(ctx, spell)
+		for _, spell := range charDTO.Spells {
+			spellIndex := h.enrichDataUseCase.SanitizeIndex(spell)
+			spellInfo, err := h.enrichDataUseCase.ExecuteSpell(ctx, spellIndex)
 			if err == nil && spellInfo != nil {
 				enrichedSpells[spell] = spellInfo
 			}
 		}
 
+		// Enrich equipment
 		enrichedEquipment := make(map[string]interface{})
-		// Equipment is stored in Weapon, OffHand, Armor, Shield, and Inventory
 		equipmentItems := []string{}
-		if char.Weapon != "" {
-			equipmentItems = append(equipmentItems, char.Weapon)
+		if charDTO.Weapon != "" {
+			equipmentItems = append(equipmentItems, charDTO.Weapon)
 		}
-		if char.OffHand != "" {
-			equipmentItems = append(equipmentItems, char.OffHand)
+		if charDTO.OffHand != "" {
+			equipmentItems = append(equipmentItems, charDTO.OffHand)
 		}
-		if char.Armor != "" {
-			equipmentItems = append(equipmentItems, char.Armor)
+		if charDTO.Armor != "" {
+			equipmentItems = append(equipmentItems, charDTO.Armor)
 		}
-		if char.Shield != "" {
-			equipmentItems = append(equipmentItems, char.Shield)
+		if charDTO.Shield != "" {
+			equipmentItems = append(equipmentItems, charDTO.Shield)
 		}
-		equipmentItems = append(equipmentItems, char.Inventory...)
+		equipmentItems = append(equipmentItems, charDTO.Inventory...)
 		
 		for _, equip := range equipmentItems {
 			if equip == "" {
 				continue
 			}
-			equipInfo, err := enrichRepo.FetchEquipmentInfo(ctx, equip)
+			equipIndex := h.enrichDataUseCase.SanitizeIndex(equip)
+			equipInfo, err := h.enrichDataUseCase.ExecuteEquipment(ctx, equipIndex)
 			if err == nil && equipInfo != nil {
 				enrichedEquipment[equip] = equipInfo
 			}

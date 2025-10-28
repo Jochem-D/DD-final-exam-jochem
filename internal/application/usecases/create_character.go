@@ -5,26 +5,11 @@ import (
 	"sort"
 	"strings"
 
+	"ddsheetfinal/internal/application/dtos"
 	"ddsheetfinal/internal/domain/entities"
 	"ddsheetfinal/internal/domain/repositories"
 	"ddsheetfinal/internal/domain/valueobjects"
 )
-
-// CreateCharacterInput contains the input data for creating a character
-type CreateCharacterInput struct {
-	Name       string
-	Race       string
-	Class      string
-	Background string
-	Level      int
-	Str        int
-	Dex        int
-	Con        int
-	Int        int
-	Wis        int
-	Cha        int
-	Skills     []string // Optional
-}
 
 type CreateCharacterUseCase struct {
 	characterRepo repositories.CharacterRepository
@@ -37,22 +22,22 @@ func NewCreateCharacterUseCase(characterRepo repositories.CharacterRepository) *
 }
 
 // Execute creates a new character
-func (uc *CreateCharacterUseCase) Execute(input CreateCharacterInput) error {
+func (uc *CreateCharacterUseCase) Execute(input dtos.CreateCharacterDTO) (*dtos.CharacterDTO, error) {
 	// Validate input
 	if input.Name == "" {
-		return fmt.Errorf("name is required")
+		return nil, fmt.Errorf("name is required")
 	}
 	if input.Race == "" {
-		return fmt.Errorf("race is required")
+		return nil, fmt.Errorf("race is required")
 	}
 	if input.Class == "" {
-		return fmt.Errorf("class is required")
+		return nil, fmt.Errorf("class is required")
 	}
 
 	// Build skill list
 	skillList, err := uc.buildSkillList(input)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Apply racial bonuses
@@ -78,18 +63,22 @@ func (uc *CreateCharacterUseCase) Execute(input CreateCharacterInput) error {
 	}
 
 	// Save character
-	return uc.characterRepo.Save(character)
+	if err := uc.characterRepo.Save(character); err != nil {
+		return nil, err
+	}
+
+	return dtos.ToCharacterDTO(character), nil
 }
 
-func (uc *CreateCharacterUseCase) buildSkillList(input CreateCharacterInput) ([]string, error) {
+func (uc *CreateCharacterUseCase) buildSkillList(input dtos.CreateCharacterDTO) ([]string, error) {
 	classLower := strings.ToLower(input.Class)
 	backgroundLower := strings.ToLower(input.Background)
 
-	// Start with background skills
+	// Start with background skills (allow duplicates for correct output)
 	bgSkills := valueobjects.BackgroundSkillProficiencies[backgroundLower]
-	skillMap := make(map[string]bool)
+	result := make([]string, 0)
 	for _, s := range bgSkills {
-		skillMap[s] = true
+		result = append(result, s)
 	}
 
 	// If skills are provided, validate and add them
@@ -105,7 +94,7 @@ func (uc *CreateCharacterUseCase) buildSkillList(input CreateCharacterInput) ([]
 			if !classSkillMap[skillLower] {
 				return nil, fmt.Errorf("skill '%s' is not available to the %s class", skill, input.Class)
 			}
-			skillMap[skillLower] = true
+			result = append(result, skillLower)
 		}
 
 		// Check number of skills
@@ -121,8 +110,9 @@ func (uc *CreateCharacterUseCase) buildSkillList(input CreateCharacterInput) ([]
 
 		assigned := 0
 		for _, skill := range classSkills {
-			if !skillMap[skill] && assigned < numNeeded {
-				skillMap[skill] = true
+			// Don't check for duplicates - add skills even if background already has them
+			if assigned < numNeeded {
+				result = append(result, skill)
 				assigned++
 			}
 			if assigned >= numNeeded {
@@ -131,17 +121,13 @@ func (uc *CreateCharacterUseCase) buildSkillList(input CreateCharacterInput) ([]
 		}
 	}
 
-	// Convert map to sorted slice
-	result := make([]string, 0, len(skillMap))
-	for skill := range skillMap {
-		result = append(result, skill)
-	}
+	// Sort the list
 	sort.Strings(result)
 
 	return result, nil
 }
 
-func (uc *CreateCharacterUseCase) applyRacialBonuses(input CreateCharacterInput) (str, dex, con, intScore, wis, cha int) {
+func (uc *CreateCharacterUseCase) applyRacialBonuses(input dtos.CreateCharacterDTO) (str, dex, con, intScore, wis, cha int) {
 	str, dex, con, intScore, wis, cha = input.Str, input.Dex, input.Con, input.Int, input.Wis, input.Cha
 	raceLower := strings.ToLower(input.Race)
 

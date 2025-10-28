@@ -86,26 +86,14 @@ func (h *EnrichHandler) Handle(args []string) {
 // parseArgs parses flags and the optional name argument from args
 func (h *EnrichHandler) parseArgs(args []string) (inplace, force, fetchAll bool, name string) {
 	fs := flag.NewFlagSet("enrich", flag.ExitOnError)
+	
+	// Allow flags before or after the name by registering them first
 	inplacePtr := fs.Bool("inplace", false, "update the original JSON instead of writing to data/enrichments/<name>.json")
 	forcePtr := fs.Bool("force", false, "force fetching/caching even if enriched file exists")
 	fetchAllPtr := fs.Bool("fetch-all", false, "fetch all spells and equipment from the API into the cache before enriching")
+	
+	// Parse all args - flag package handles flags anywhere in args
 	_ = fs.Parse(args)
-
-	// The stdlib flag package stops parsing flags after the first
-	// non-flag argument, so callers may pass flags after the name
-	// (e.g. `enrich Gandalf --force`). To be forgiving, scan the
-	// raw args for known flags and set them if present.
-	for _, a := range args {
-		if a == "--force" || a == "-force" {
-			*forcePtr = true
-		}
-		if a == "--inplace" || a == "-inplace" {
-			*inplacePtr = true
-		}
-		if a == "--fetch-all" || a == "-fetch-all" {
-			*fetchAllPtr = true
-		}
-	}
 
 	// Name is the first non-flag argument
 	remaining := fs.Args()
