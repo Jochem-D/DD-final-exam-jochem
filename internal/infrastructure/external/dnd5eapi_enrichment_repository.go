@@ -37,8 +37,15 @@ func NewDND5EAPIEnrichmentRepository(cacheDir string) repositories.EnrichmentRep
 	}
 }
 
-// FetchSpellInfo retrieves spell information from the external API
+// FetchSpellInfo retrieves spell information from the external API or cache
 func (r *DND5EAPIEnrichmentRepository) FetchSpellInfo(ctx context.Context, spellIndex string) (*repositories.SpellInfo, error) {
+	// Try cache first
+	cache, _ := r.LoadSpellCache()
+	if info, ok := cache[spellIndex]; ok {
+		return &info, nil
+	}
+	
+	// Fetch from API
 	var body struct {
 		Name   string `json:"name"`
 		Range  string `json:"range"`
@@ -54,16 +61,30 @@ func (r *DND5EAPIEnrichmentRepository) FetchSpellInfo(ctx context.Context, spell
 	}
 	
 	desc := strings.Join(body.Desc, "\n\n")
-	return &repositories.SpellInfo{
+	info := &repositories.SpellInfo{
 		Name:        body.Name,
 		School:      body.School.Name,
 		Range:       body.Range,
 		Description: desc,
-	}, nil
+	}
+	
+	// Save to cache
+	cache[spellIndex] = *info
+	_ = r.SaveSpellCache(cache)
+	
+	return info, nil
 }
 
 // FetchEquipmentInfo retrieves equipment information from the external API
+// FetchEquipmentInfo retrieves equipment information from the external API or cache
 func (r *DND5EAPIEnrichmentRepository) FetchEquipmentInfo(ctx context.Context, equipmentIndex string) (*repositories.EquipmentInfo, error) {
+	// Try cache first
+	cache, _ := r.LoadEquipmentCache()
+	if info, ok := cache[equipmentIndex]; ok {
+		return &info, nil
+	}
+	
+	// Fetch from API
 	var raw map[string]any
 	
 	path := "/equipment/" + equipmentIndex
@@ -130,6 +151,10 @@ func (r *DND5EAPIEnrichmentRepository) FetchEquipmentInfo(ctx context.Context, e
 		}
 	}
 	
+	// Save to cache
+	cache[equipmentIndex] = *info
+	_ = r.SaveEquipmentCache(cache)
+	
 	return info, nil
 }
 
@@ -193,9 +218,137 @@ func (r *DND5EAPIEnrichmentRepository) SaveEquipmentCache(cache map[string]repos
 
 // FetchAllReferences fetches all spells and equipment from the API
 func (r *DND5EAPIEnrichmentRepository) FetchAllReferences(ctx context.Context) error {
-	// This would implement the full fetch-all logic
-	// For now, return not implemented
-	return fmt.Errorf("fetch all references not yet implemented in new architecture")
+	// Fetch all spells
+	fmt.Println("Fetching spell list...")
+	var spellList struct {
+		Results []struct {
+			Index string `json:"index"`
+			Name  string `json:"name"`
+		} `json:"results"`
+	}
+	
+	if err := r.getJSONWithFallback(ctx, "/spells", &spellList); err != nil {
+		return fmt.Errorf("fetch spell list: %w", err)
+	}
+	
+	fmt.Printf("Fetching %d spells with concurrency...\n", len(spellList.Results))
+	spellCache := r.fetchSpellsConcurrently(ctx, spellList.Results)
+	
+	if err := r.SaveSpellCache(spellCache); err != nil {
+		return fmt.Errorf("save spell cache: %w", err)
+	}
+	fmt.Printf("✓ Cached %d spells\n", len(spellCache))
+	
+	// Fetch all equipment
+	fmt.Println("Fetching equipment list...")
+	var equipList struct {
+		Results []struct {
+			Index string `json:"index"`
+			Name  string `json:"name"`
+		} `json:"results"`
+	}
+	
+	if err := r.getJSONWithFallback(ctx, "/equipment", &equipList); err != nil {
+		return fmt.Errorf("fetch equipment list: %w", err)
+	}
+	
+	fmt.Printf("Fetching %d equipment items with concurrency...\n", len(equipList.Results))
+	equipCache := r.fetchEquipmentConcurrently(ctx, equipList.Results)
+	
+	if err := r.SaveEquipmentCache(equipCache); err != nil {
+		return fmt.Errorf("save equipment cache: %w", err)
+	}
+	fmt.Printf("✓ Cached %d equipment items\n", len(equipCache))
+	
+	return nil
+}
+
+// fetchSpellsConcurrently fetches spells concurrently using goroutines
+func (r *DND5EAPIEnrichmentRepository) fetchSpellsConcurrently(ctx context.Context, spells []struct {
+	Index string `json:"index"`
+	Name  string `json:"name"`
+}) map[string]repositories.SpellInfo {
+	const maxWorkers = 10
+	type result struct {
+		index string
+		info  *repositories.SpellInfo
+		err   error
+	}
+	
+	results := make(chan result, len(spells))
+	semaphore := make(chan struct{}, maxWorkers)
+	
+	for _, spell := range spells {
+		spell := spell // capture loop variable
+		go func() {
+			semaphore <- struct{}{} // acquire
+			defer func() { <-semaphore }() // release
+			
+			info, err := r.FetchSpellInfo(ctx, spell.Index)
+			results <- result{index: spell.Index, info: info, err: err}
+		}()
+	}
+	
+	cache := make(map[string]repositories.SpellInfo)
+	for i := 0; i < len(spells); i++ {
+		res := <-results
+		if res.err != nil {
+			fmt.Printf("  Warning: failed to fetch spell %s: %v\n", res.index, res.err)
+			continue
+		}
+		if res.info != nil {
+			cache[res.index] = *res.info
+		}
+		if (i+1)%50 == 0 {
+			fmt.Printf("  Progress: %d/%d spells\n", i+1, len(spells))
+		}
+	}
+	
+	return cache
+}
+
+// fetchEquipmentConcurrently fetches equipment concurrently using goroutines
+func (r *DND5EAPIEnrichmentRepository) fetchEquipmentConcurrently(ctx context.Context, equipment []struct {
+	Index string `json:"index"`
+	Name  string `json:"name"`
+}) map[string]repositories.EquipmentInfo {
+	const maxWorkers = 10
+	type result struct {
+		index string
+		info  *repositories.EquipmentInfo
+		err   error
+	}
+	
+	results := make(chan result, len(equipment))
+	semaphore := make(chan struct{}, maxWorkers)
+	
+	for _, equip := range equipment {
+		equip := equip // capture loop variable
+		go func() {
+			semaphore <- struct{}{} // acquire
+			defer func() { <-semaphore }() // release
+			
+			info, err := r.FetchEquipmentInfo(ctx, equip.Index)
+			results <- result{index: equip.Index, info: info, err: err}
+		}()
+	}
+	
+	cache := make(map[string]repositories.EquipmentInfo)
+	for i := 0; i < len(equipment); i++ {
+		res := <-results
+		if res.err != nil {
+			fmt.Printf("  Warning: failed to fetch equipment %s: %v\n", res.index, res.err)
+			continue
+		}
+		if res.info != nil {
+			cache[res.index] = *res.info
+		}
+		if (i+1)%50 == 0 {
+			fmt.Printf("  Progress: %d/%d equipment\n", i+1, len(equipment))
+		}
+	}
+	
+	return cache
 }
 
 // Helper methods

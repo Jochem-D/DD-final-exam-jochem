@@ -300,6 +300,42 @@ func (h *ServeHandler) handleEnrich() http.HandlerFunc {
 			}
 		}
 
+		// Build enriched character with embedded enrichment data
+		enrichedChar := map[string]interface{}{
+			"name":                charDTO.Name,
+			"race":                charDTO.Race,
+			"class":               charDTO.Class,
+			"background":          charDTO.Background,
+			"level":               charDTO.Level,
+			"str":                 charDTO.Str,
+			"dex":                 charDTO.Dex,
+			"con":                 charDTO.Con,
+			"int":                 charDTO.Int,
+			"wis":                 charDTO.Wis,
+			"cha":                 charDTO.Cha,
+			"skill_proficiencies": charDTO.SkillProficiencies,
+			"spells":              charDTO.Spells,
+			"equipment":           charDTO.Inventory,
+			"weapon":              charDTO.Weapon,
+			"armor":               charDTO.Armor,
+			"shield":              charDTO.Shield,
+			"enriched": map[string]interface{}{
+				"spells":    enrichedSpells,
+				"equipment": enrichedEquipment,
+			},
+		}
+
+		// Save enriched character to file
+		projectRoot, _ := os.Getwd()
+		enrichDir := filepath.Join(projectRoot, "data", "enrichments")
+		os.MkdirAll(enrichDir, 0755)
+		enrichPath := filepath.Join(enrichDir, name+".json")
+		
+		enrichedJSON, err := json.MarshalIndent(enrichedChar, "", "  ")
+		if err == nil {
+			os.WriteFile(enrichPath, enrichedJSON, 0644)
+		}
+
 		result := map[string]interface{}{
 			"OK":             true,
 			"CharacterName":  name,
@@ -308,6 +344,7 @@ func (h *ServeHandler) handleEnrich() http.HandlerFunc {
 			"FetchedSpells":  len(enrichedSpells),
 			"FetchedEquip":   len(enrichedEquipment),
 			"ElapsedMs":      time.Since(start).Milliseconds(),
+			"output_path":    enrichPath,
 		}
 
 		w.Header().Set("Content-Type", "application/json")

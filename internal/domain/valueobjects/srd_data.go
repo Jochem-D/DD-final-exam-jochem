@@ -177,6 +177,11 @@ func GetSpellSlots(class string, level int) []int {
 		classLower = class
 	}
 
+	// Warlock has special pact magic - check first before full caster logic
+	if classLower == "warlock" {
+		return getWarlockSpellSlots(level)
+	}
+
 	// Use centralized spellcasting logic
 	isFullCaster := IsSpellcaster(classLower) && !IsPreparedCaster(classLower) || 
 		classLower == "bard" || classLower == "sorcerer" || classLower == "wizard" || 
@@ -202,11 +207,6 @@ func GetSpellSlots(class string, level int) []int {
 		spellSlots := HalfCasterSpellSlots[level-1]
 		copy(slots[1:], spellSlots)
 		return slots
-	}
-
-	// Warlock has special pact magic
-	if classLower == "warlock" {
-		return getWarlockSpellSlots(level)
 	}
 
 	return nil
