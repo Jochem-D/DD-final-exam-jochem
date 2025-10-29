@@ -5711,10 +5711,10 @@ index 0000000..2845729
 +}
 diff --git a/internal/application/usecases/get_enriched_character.go b/internal/application/usecases/get_enriched_character.go
 new file mode 100644
-index 0000000..122e7c2
+index 0000000..09e316b
 --- /dev/null
 +++ b/internal/application/usecases/get_enriched_character.go
-@@ -0,0 +1,318 @@
+@@ -0,0 +1,317 @@
 +package usecases
 +
 +import (
@@ -5735,8 +5735,7 @@ index 0000000..122e7c2
 +	enrichmentRepo   repositories.EnrichmentRepository
 +}
 +
-+// abilityMods holds all ability modifiers for cleaner function signatures
-+type abilityMods struct {
++// abilityMods holds all ability modifiers type abilityMods struct {
 +	str, dex, con, int, wis, cha int
 +}
 +
