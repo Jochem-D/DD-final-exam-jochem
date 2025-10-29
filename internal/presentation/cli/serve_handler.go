@@ -25,17 +25,19 @@ const (
 
 // ServeHandler handles the HTTP server command
 type ServeHandler struct {
-	getCharacterUseCase    *usecases.GetCharacterUseCase
-	saveCharacterUseCase   *usecases.SaveCharacterUseCase
-	deleteCharacterUseCase *usecases.DeleteCharacterUseCase
-	listCharactersUseCase  *usecases.ListCharactersUseCase
-	deriveStatsUseCase     *usecases.DeriveCharacterStatsUseCase
-	enrichDataUseCase      *usecases.EnrichDataUseCase
+	getCharacterUseCase         *usecases.GetCharacterUseCase
+	getEnrichedCharacterUseCase *usecases.GetEnrichedCharacterUseCase
+	saveCharacterUseCase        *usecases.SaveCharacterUseCase
+	deleteCharacterUseCase      *usecases.DeleteCharacterUseCase
+	listCharactersUseCase       *usecases.ListCharactersUseCase
+	deriveStatsUseCase          *usecases.DeriveCharacterStatsUseCase
+	enrichDataUseCase           *usecases.EnrichDataUseCase
 }
 
 // NewServeHandler creates a new serve handler
 func NewServeHandler(
 	getCharacterUseCase *usecases.GetCharacterUseCase,
+	getEnrichedCharacterUseCase *usecases.GetEnrichedCharacterUseCase,
 	saveCharacterUseCase *usecases.SaveCharacterUseCase,
 	deleteCharacterUseCase *usecases.DeleteCharacterUseCase,
 	listCharactersUseCase *usecases.ListCharactersUseCase,
@@ -43,12 +45,13 @@ func NewServeHandler(
 	enrichDataUseCase *usecases.EnrichDataUseCase,
 ) *ServeHandler {
 	return &ServeHandler{
-		getCharacterUseCase:    getCharacterUseCase,
-		saveCharacterUseCase:   saveCharacterUseCase,
-		deleteCharacterUseCase: deleteCharacterUseCase,
-		listCharactersUseCase:  listCharactersUseCase,
-		deriveStatsUseCase:     deriveStatsUseCase,
-		enrichDataUseCase:      enrichDataUseCase,
+		getCharacterUseCase:         getCharacterUseCase,
+		getEnrichedCharacterUseCase: getEnrichedCharacterUseCase,
+		saveCharacterUseCase:        saveCharacterUseCase,
+		deleteCharacterUseCase:      deleteCharacterUseCase,
+		listCharactersUseCase:       listCharactersUseCase,
+		deriveStatsUseCase:          deriveStatsUseCase,
+		enrichDataUseCase:           enrichDataUseCase,
 	}
 }
 
@@ -81,6 +84,9 @@ func (h *ServeHandler) Handle(args []string) {
 
 	// Character CRUD endpoints
 	mux.HandleFunc(charactersPath, h.handleCharacters(charDir))
+
+	// API: Get enriched character (all calculated stats included)
+	mux.HandleFunc("/api/character/enriched", h.handleGetEnrichedCharacter())
 
 	// API: Derive endpoint (compute AC, saves, etc.)
 	mux.HandleFunc("/api/derive", h.handleDerive())
@@ -193,6 +199,33 @@ func (h *ServeHandler) handleCharacters(charDir string) http.HandlerFunc {
 			http.Error(w, errMethodNotAllowed, http.StatusMethodNotAllowed)
 			return
 		}
+	}
+}
+
+// handleGetEnrichedCharacter returns a handler that gets a character with all calculated stats
+func (h *ServeHandler) handleGetEnrichedCharacter() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, errMethodNotAllowed, http.StatusMethodNotAllowed)
+			return
+		}
+
+		// Get character name from query parameter
+		characterName := r.URL.Query().Get("name")
+		if characterName == "" {
+			http.Error(w, "character name is required", http.StatusBadRequest)
+			return
+		}
+
+		// Use GetEnrichedCharacterUseCase
+		enrichedChar, err := h.getEnrichedCharacterUseCase.Execute(characterName)
+		if err != nil {
+			http.Error(w, "error getting character: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set(headerContentType, jsonContentType)
+		json.NewEncoder(w).Encode(enrichedChar)
 	}
 }
 

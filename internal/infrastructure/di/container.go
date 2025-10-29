@@ -23,6 +23,7 @@ type Container struct {
 	CreateCharacterUseCase      *usecases.CreateCharacterUseCase
 	ViewCharacterUseCase        *usecases.ViewCharacterUseCase
 	GetCharacterUseCase         *usecases.GetCharacterUseCase
+	GetEnrichedCharacterUseCase *usecases.GetEnrichedCharacterUseCase
 	SaveCharacterUseCase        *usecases.SaveCharacterUseCase
 	DeleteCharacterUseCase      *usecases.DeleteCharacterUseCase
 	ListCharactersUseCase       *usecases.ListCharactersUseCase
@@ -66,6 +67,7 @@ func NewContainer(charactersDir, equipmentCSV, spellsCSV, cacheDir string) *Cont
 	c.CreateCharacterUseCase = usecases.NewCreateCharacterUseCase(c.CharacterRepo)
 	c.ViewCharacterUseCase = usecases.NewViewCharacterUseCase(c.CharacterRepo, c.CharacterService)
 	c.GetCharacterUseCase = usecases.NewGetCharacterUseCase(c.CharacterRepo)
+	c.GetEnrichedCharacterUseCase = usecases.NewGetEnrichedCharacterUseCase(c.CharacterRepo, c.CharacterService)
 	c.SaveCharacterUseCase = usecases.NewSaveCharacterUseCase(c.CharacterRepo)
 	c.DeleteCharacterUseCase = usecases.NewDeleteCharacterUseCase(c.CharacterRepo)
 	c.ListCharactersUseCase = usecases.NewListCharactersUseCase(c.CharacterRepo)
@@ -91,6 +93,7 @@ func NewContainer(charactersDir, equipmentCSV, spellsCSV, cacheDir string) *Cont
 	c.HelpHandler = cli.NewHelpHandler()
 	c.ServeHandler = cli.NewServeHandler(
 		c.GetCharacterUseCase,
+		c.GetEnrichedCharacterUseCase,
 		c.SaveCharacterUseCase,
 		c.DeleteCharacterUseCase,
 		c.ListCharactersUseCase,
