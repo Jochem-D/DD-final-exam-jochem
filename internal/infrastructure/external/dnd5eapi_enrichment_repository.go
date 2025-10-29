@@ -405,3 +405,20 @@ func (r *DND5EAPIEnrichmentRepository) convertToGP(qty float64, unit string) flo
 		return qty
 	}
 }
+
+// LoadCharacterEnrichment loads enriched data for a specific character from the enrichments directory
+func (r *DND5EAPIEnrichmentRepository) LoadCharacterEnrichment(characterName string) (map[string]interface{}, error) {
+	enrichmentPath := filepath.Join("data", "enrichments", characterName+".json")
+	
+	data, err := os.ReadFile(enrichmentPath)
+	if err != nil {
+		return nil, fmt.Errorf("read enrichment file for %s: %w", characterName, err)
+	}
+	
+	var result map[string]interface{}
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, fmt.Errorf("parse enrichment file for %s: %w", characterName, err)
+	}
+	
+	return result, nil
+}

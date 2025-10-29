@@ -24,4 +24,7 @@ type EnrichmentRepository interface {
 	
 	// FetchAllReferences fetches all spells and equipment from the API
 	FetchAllReferences(ctx context.Context) error
+	
+	// LoadCharacterEnrichment loads enriched data for a specific character
+	LoadCharacterEnrichment(characterName string) (map[string]interface{}, error)
 }

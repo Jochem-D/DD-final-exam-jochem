@@ -1,10 +1,7 @@
 package usecases
 
 import (
-	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"ddsheetfinal/internal/application/dtos"
@@ -236,12 +233,11 @@ func (uc *GetEnrichedCharacterUseCase) calculateSingleWeaponAttack(
 		return nil
 	}
 
-	// Try to load enriched data from JSON file
-	enrichedPath := filepath.Join("data", "enrichments", characterName+".json")
-	enrichedData := make(map[string]interface{})
-	
-	if data, err := os.ReadFile(enrichedPath); err == nil {
-		json.Unmarshal(data, &enrichedData)
+	// Load enriched data using the repository (follows Onion Architecture)
+	enrichedData, err := uc.enrichmentRepo.LoadCharacterEnrichment(characterName)
+	if err != nil {
+		// No enrichment file available - return fallback
+		return uc.calculateBasicWeaponAttack(weaponName, strMod, dexMod, profBonus)
 	}
 
 	// Try to get weapon info from enriched.equipment
