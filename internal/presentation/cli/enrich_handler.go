@@ -123,19 +123,17 @@ func (h *EnrichHandler) runFetchAll(baseCtx context.Context) error {
 func (h *EnrichHandler) saveEnrichedCharacter(name string, data map[string]interface{}, inplace bool) (string, error) {
 	pretty, _ := json.MarshalIndent(data, "", "  ")
 	
+	var outPath string
 	if inplace {
-		outPath := filepath.Join("data", "characters", name+".json")
-		if err := os.WriteFile(outPath, pretty, 0644); err != nil {
-			return "", fmt.Errorf("write %s: %w", outPath, err)
+		outPath = filepath.Join("data", "characters", name+".json")
+	} else {
+		outDir := filepath.Join("data", "enrichments")
+		if err := os.MkdirAll(outDir, 0755); err != nil {
+			return "", fmt.Errorf("mkdir %s: %w", outDir, err)
 		}
-		return outPath, nil
+		outPath = filepath.Join(outDir, name+".json")
 	}
 	
-	outDir := filepath.Join("data", "enrichments")
-	if err := os.MkdirAll(outDir, 0755); err != nil {
-		return "", fmt.Errorf("mkdir %s: %w", outDir, err)
-	}
-	outPath := filepath.Join(outDir, name+".json")
 	if err := os.WriteFile(outPath, pretty, 0644); err != nil {
 		return "", fmt.Errorf("write %s: %w", outPath, err)
 	}
