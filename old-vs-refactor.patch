@@ -4639,7 +4639,7 @@ index 0000000..aaf71e0
 +}
 diff --git a/internal/application/dtos/enriched_character_dto.go b/internal/application/dtos/enriched_character_dto.go
 new file mode 100644
-index 0000000..1486edb
+index 0000000..b63a098
 --- /dev/null
 +++ b/internal/application/dtos/enriched_character_dto.go
 @@ -0,0 +1,57 @@
@@ -5711,7 +5711,7 @@ index 0000000..2845729
 +}
 diff --git a/internal/application/usecases/get_enriched_character.go b/internal/application/usecases/get_enriched_character.go
 new file mode 100644
-index 0000000..09e316b
+index 0000000..9f5a42e
 --- /dev/null
 +++ b/internal/application/usecases/get_enriched_character.go
 @@ -0,0 +1,317 @@
@@ -10678,7 +10678,7 @@ index a1cc578..aa24d3f 100644
 +</html>
 diff --git a/web/static/js/charactersheet.js b/web/static/js/charactersheet.js
 new file mode 100644
-index 0000000..f88c020
+index 0000000..090d24f
 --- /dev/null
 +++ b/web/static/js/charactersheet.js
 @@ -0,0 +1,214 @@
@@ -10805,10 +10805,10 @@ index 0000000..f88c020
 +  // Attacks table - populate from weapon/off_hand
 +  populateAttacks(data);
 +  
-+  if (Array.isArray(data.spells)) {
++  // Spells - populate the spellsarea textarea
++  if (Array.isArray(data.spells) && data.spells.length > 0) {
 +    const spellsText = data.spells.join("\n");
-+    const spellsEl = document.querySelector('textarea[name="spells"]');
-+    if (spellsEl) spellsEl.value = spellsText;
++    setFieldValue("spellsarea", spellsText);
 +  }
 +}
 +
