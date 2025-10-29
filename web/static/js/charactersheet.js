@@ -121,10 +121,10 @@ function populateCharacterSheet(data) {
   // Attacks table - populate from weapon/off_hand
   populateAttacks(data);
   
-  if (Array.isArray(data.spells)) {
+  // Spells - populate the spellsarea textarea
+  if (Array.isArray(data.spells) && data.spells.length > 0) {
     const spellsText = data.spells.join("\n");
-    const spellsEl = document.querySelector('textarea[name="spells"]');
-    if (spellsEl) spellsEl.value = spellsText;
+    setFieldValue("spellsarea", spellsText);
   }
 }
 
