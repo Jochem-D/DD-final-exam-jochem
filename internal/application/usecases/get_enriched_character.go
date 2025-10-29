@@ -18,7 +18,8 @@ type GetEnrichedCharacterUseCase struct {
 	enrichmentRepo   repositories.EnrichmentRepository
 }
 
-// abilityMods holds all ability modifiers type abilityMods struct {
+// abilityMods holds all ability modifiers
+type abilityMods struct {
 	str, dex, con, int, wis, cha int
 }
 
