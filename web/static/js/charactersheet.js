@@ -6,7 +6,7 @@
 // ============================================================================
 
 function getQueryParam(param) {
-  const urlParams = new URLSearchParams(window.location.search);
+  const urlParams = new URLSearchParams(globalThis.location.search);
   return urlParams.get(param);
 }
 

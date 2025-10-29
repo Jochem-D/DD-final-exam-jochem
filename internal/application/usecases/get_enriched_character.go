@@ -18,6 +18,11 @@ type GetEnrichedCharacterUseCase struct {
 	enrichmentRepo   repositories.EnrichmentRepository
 }
 
+// abilityMods holds all ability modifiers for cleaner function signatures
+type abilityMods struct {
+	str, dex, con, int, wis, cha int
+}
+
 // NewGetEnrichedCharacterUseCase creates a new use case
 func NewGetEnrichedCharacterUseCase(
 	characterRepo repositories.CharacterRepository,
@@ -40,12 +45,14 @@ func (uc *GetEnrichedCharacterUseCase) Execute(characterName string) (*dtos.Enri
 	}
 
 	// Calculate ability modifiers
-	strMod := valueobjects.AbilityModifier(character.Str)
-	dexMod := valueobjects.AbilityModifier(character.Dex)
-	conMod := valueobjects.AbilityModifier(character.Con)
-	intMod := valueobjects.AbilityModifier(character.Int)
-	wisMod := valueobjects.AbilityModifier(character.Wis)
-	chaMod := valueobjects.AbilityModifier(character.Cha)
+	mods := abilityMods{
+		str: valueobjects.AbilityModifier(character.Str),
+		dex: valueobjects.AbilityModifier(character.Dex),
+		con: valueobjects.AbilityModifier(character.Con),
+		int: valueobjects.AbilityModifier(character.Int),
+		wis: valueobjects.AbilityModifier(character.Wis),
+		cha: valueobjects.AbilityModifier(character.Cha),
+	}
 
 	// Calculate proficiency bonus
 	profBonus := valueobjects.ProficiencyBonus(character.Level)
@@ -70,46 +77,46 @@ func (uc *GetEnrichedCharacterUseCase) Execute(characterName string) (*dtos.Enri
 	wisSaveProf := uc.characterService.IsSaveProficient(character, "Wisdom")
 	chaSaveProf := uc.characterService.IsSaveProficient(character, "Charisma")
 
-	strSave := strMod
+	strSave := mods.str
 	if strSaveProf {
 		strSave += profBonus
 	}
-	dexSave := dexMod
+	dexSave := mods.dex
 	if dexSaveProf {
 		dexSave += profBonus
 	}
-	conSave := conMod
+	conSave := mods.con
 	if conSaveProf {
 		conSave += profBonus
 	}
-	intSave := intMod
+	intSave := mods.int
 	if intSaveProf {
 		intSave += profBonus
 	}
-	wisSave := wisMod
+	wisSave := mods.wis
 	if wisSaveProf {
 		wisSave += profBonus
 	}
-	chaSave := chaMod
+	chaSave := mods.cha
 	if chaSaveProf {
 		chaSave += profBonus
 	}
 
 	// Calculate skills with proficiency
-	skills, skillProfs := uc.calculateSkills(character, strMod, dexMod, conMod, intMod, wisMod, chaMod, profBonus)
+	skills, skillProfs := uc.calculateSkills(character, mods, profBonus)
 
 	// Calculate weapon attacks with enrichment data
-	weaponAttacks := uc.calculateWeaponAttacks(character, strMod, dexMod, profBonus)
+	weaponAttacks := uc.calculateWeaponAttacks(character, mods, profBonus)
 
 	// Build enriched DTO
 	enriched := &dtos.EnrichedCharacterDTO{
 		CharacterDTO:      *dtos.ToCharacterDTO(character),
-		StrMod:            strMod,
-		DexMod:            dexMod,
-		ConMod:            conMod,
-		IntMod:            intMod,
-		WisMod:            wisMod,
-		ChaMod:            chaMod,
+		StrMod:            mods.str,
+		DexMod:            mods.dex,
+		ConMod:            mods.con,
+		IntMod:            mods.int,
+		WisMod:            mods.wis,
+		ChaMod:            mods.cha,
 		ProficiencyBonus:  profBonus,
 		ArmorClass:        ac,
 		ACCalculation:     acCalc,
@@ -154,29 +161,29 @@ func (uc *GetEnrichedCharacterUseCase) getSpeed(race string) int {
 
 func (uc *GetEnrichedCharacterUseCase) calculateSkills(
 	character *entities.Character,
-	strMod, dexMod, conMod, intMod, wisMod, chaMod int,
+	mods abilityMods,
 	profBonus int,
 ) (map[string]int, map[string]bool) {
 	// Skill to ability mapping
 	skillAbilities := map[string]int{
-		"acrobatics":      dexMod,
-		"animal handling": wisMod,
-		"arcana":          intMod,
-		"athletics":       strMod,
-		"deception":       chaMod,
-		"history":         intMod,
-		"insight":         wisMod,
-		"intimidation":    chaMod,
-		"investigation":   intMod,
-		"medicine":        wisMod,
-		"nature":          intMod,
-		"perception":      wisMod,
-		"performance":     chaMod,
-		"persuasion":      chaMod,
-		"religion":        intMod,
-		"sleight of hand": dexMod,
-		"stealth":         dexMod,
-		"survival":        wisMod,
+		"acrobatics":      mods.dex,
+		"animal handling": mods.wis,
+		"arcana":          mods.int,
+		"athletics":       mods.str,
+		"deception":       mods.cha,
+		"history":         mods.int,
+		"insight":         mods.wis,
+		"intimidation":    mods.cha,
+		"investigation":   mods.int,
+		"medicine":        mods.wis,
+		"nature":          mods.int,
+		"perception":      mods.wis,
+		"performance":     mods.cha,
+		"persuasion":      mods.cha,
+		"religion":        mods.int,
+		"sleight of hand": mods.dex,
+		"stealth":         mods.dex,
+		"survival":        mods.wis,
 	}
 
 	skills := make(map[string]int)
@@ -199,14 +206,14 @@ func (uc *GetEnrichedCharacterUseCase) calculateSkills(
 
 func (uc *GetEnrichedCharacterUseCase) calculateWeaponAttacks(
 	character *entities.Character,
-	strMod, dexMod int,
+	mods abilityMods,
 	profBonus int,
 ) []dtos.WeaponAttackDTO {
 	attacks := []dtos.WeaponAttackDTO{}
 
 	// Add weapon if equipped
 	if character.Weapon != "" {
-		attack := uc.calculateSingleWeaponAttack(character.Weapon, strMod, dexMod, profBonus, character.Name)
+		attack := uc.calculateSingleWeaponAttack(character.Weapon, mods.str, mods.dex, profBonus, character.Name)
 		if attack != nil {
 			attacks = append(attacks, *attack)
 		}
@@ -214,7 +221,7 @@ func (uc *GetEnrichedCharacterUseCase) calculateWeaponAttacks(
 
 	// Add off-hand if equipped
 	if character.OffHand != "" {
-		attack := uc.calculateSingleWeaponAttack(character.OffHand, strMod, dexMod, profBonus, character.Name)
+		attack := uc.calculateSingleWeaponAttack(character.OffHand, mods.str, mods.dex, profBonus, character.Name)
 		if attack != nil {
 			attacks = append(attacks, *attack)
 		}
