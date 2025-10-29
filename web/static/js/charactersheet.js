@@ -91,12 +91,8 @@ function populateCharacterSheet(data) {
   setFieldValue("proficiencybonus", signed(data.proficiency_bonus));
   setFieldValue("ac", data.armor_class);
   setFieldValue("initiative", signed(data.initiative));
-  setFieldValue("speed", data.speed);
   setFieldValue("passiveperception", data.passive_perception);
   
-  // HP
-  setFieldValue("maxhp", data.max_hp);
-  setFieldValue("currenthp", data.current_hp);
 
   // Saving Throws
   setFieldValue("Strength-save", signed(data.str_save));
@@ -119,11 +115,6 @@ function populateCharacterSheet(data) {
     populateSkills(data.skills, data.skill_profs);
   }
 
-  // Equipment & Money
-  setFieldValue("cp", data.money?.cp || "");
-  setFieldValue("sp", data.money?.sp || "");
-  setFieldValue("gp", data.money?.gp || "");
-  
   // Equipment textarea - combine inventory items
   populateEquipment(data);
   
@@ -199,62 +190,25 @@ function populateEquipment(data) {
 }
 
 function populateAttacks(data) {
-  const attacks = [];
+  // Use weapon_attacks from the enriched API response
+  const attacks = data.weapon_attacks || [];
   
-  // Add weapon as first attack if present
-  if (data.weapon) {
-    const weaponAttack = calculateWeaponAttack(data.weapon, data);
-    attacks.push(weaponAttack);
+  // If no weapon attacks but character has weapons, show enrichment message
+  if (attacks.length === 0 && (data.weapon || data.off_hand)) {
+    const message = "Run 'enrich' command to load weapon data";
+    setFieldValue("atkname1", message);
+    setFieldValue("atkbonus1", "");
+    setFieldValue("atkdamage1", "");
+    return;
   }
   
-  // Add off-hand as second attack if present
-  if (data.off_hand) {
-    const offHandAttack = calculateWeaponAttack(data.off_hand, data);
-    attacks.push(offHandAttack);
-  }
-  
-  // Populate attack fields
+  // Populate attack fields from server-calculated data
   for (let i = 0; i < attacks.length && i < 3; i++) {
     const attack = attacks[i];
     const rowNum = i + 1;
     
     setFieldValue(`atkname${rowNum}`, attack.name);
-    setFieldValue(`atkbonus${rowNum}`, attack.bonus);
+    setFieldValue(`atkbonus${rowNum}`, attack.attack_bonus);
     setFieldValue(`atkdamage${rowNum}`, attack.damage);
   }
-}
-
-function calculateWeaponAttack(weaponName, data) {
-  // Simple weapon damage lookup (can be expanded)
-  const weaponData = {
-    "dagger": { damage: "1d4", type: "piercing", finesse: true },
-    "shortsword": { damage: "1d6", type: "piercing", finesse: true },
-    "longsword": { damage: "1d8", type: "slashing", finesse: false },
-    "greatsword": { damage: "2d6", type: "slashing", finesse: false },
-    "handaxe": { damage: "1d6", type: "slashing", finesse: false },
-    "battleaxe": { damage: "1d8", type: "slashing", finesse: false },
-    "greataxe": { damage: "1d12", type: "slashing", finesse: false },
-    "quarterstaff": { damage: "1d6", type: "bludgeoning", finesse: false },
-    "mace": { damage: "1d6", type: "bludgeoning", finesse: false },
-    "rapier": { damage: "1d8", type: "piercing", finesse: true },
-    "scimitar": { damage: "1d6", type: "slashing", finesse: true },
-  };
-  
-  const weaponLower = weaponName.toLowerCase().trim();
-  const weapon = weaponData[weaponLower] || { damage: "1d6", type: "bludgeoning", finesse: false };
-  
-  // Determine which ability mod to use (finesse weapons can use DEX or STR, whichever is higher)
-  let abilityMod = data.str_mod || 0;
-  if (weapon.finesse && (data.dex_mod || 0) > abilityMod) {
-    abilityMod = data.dex_mod || 0;
-  }
-  
-  // Attack bonus = ability mod + proficiency bonus
-  const attackBonus = abilityMod + (data.proficiency_bonus || 0);
-  
-  return {
-    name: weaponName,
-    bonus: signed(attackBonus),
-    damage: `${weapon.damage} ${signed(abilityMod)} ${weapon.type}`
-  };
 }

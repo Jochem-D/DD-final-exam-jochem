@@ -67,7 +67,7 @@ func NewContainer(charactersDir, equipmentCSV, spellsCSV, cacheDir string) *Cont
 	c.CreateCharacterUseCase = usecases.NewCreateCharacterUseCase(c.CharacterRepo)
 	c.ViewCharacterUseCase = usecases.NewViewCharacterUseCase(c.CharacterRepo, c.CharacterService)
 	c.GetCharacterUseCase = usecases.NewGetCharacterUseCase(c.CharacterRepo)
-	c.GetEnrichedCharacterUseCase = usecases.NewGetEnrichedCharacterUseCase(c.CharacterRepo, c.CharacterService)
+	c.GetEnrichedCharacterUseCase = usecases.NewGetEnrichedCharacterUseCase(c.CharacterRepo, c.CharacterService, c.EnrichmentRepo)
 	c.SaveCharacterUseCase = usecases.NewSaveCharacterUseCase(c.CharacterRepo)
 	c.DeleteCharacterUseCase = usecases.NewDeleteCharacterUseCase(c.CharacterRepo)
 	c.ListCharactersUseCase = usecases.NewListCharactersUseCase(c.CharacterRepo)

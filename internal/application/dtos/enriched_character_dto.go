@@ -43,4 +43,15 @@ type EnrichedCharacterDTO struct {
 	
 	// Skill Proficiencies (which skills character is proficient in)
 	SkillProfs map[string]bool `json:"skill_profs"` // skill name -> is proficient
+	
+	// Weapon Attacks (calculated with ability mods and proficiency)
+	WeaponAttacks []WeaponAttackDTO `json:"weapon_attacks,omitempty"`
 }
+
+// WeaponAttackDTO represents a calculated weapon attack
+type WeaponAttackDTO struct {
+	Name        string `json:"name"`
+	AttackBonus string `json:"attack_bonus"` // e.g., "+5"
+	Damage      string `json:"damage"`       // e.g., "1d8+3 slashing"
+}
+

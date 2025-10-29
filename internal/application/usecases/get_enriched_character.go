@@ -1,6 +1,10 @@
 package usecases
 
 import (
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"ddsheetfinal/internal/application/dtos"
@@ -14,16 +18,19 @@ import (
 type GetEnrichedCharacterUseCase struct {
 	characterRepo    repositories.CharacterRepository
 	characterService *services.CharacterService
+	enrichmentRepo   repositories.EnrichmentRepository
 }
 
 // NewGetEnrichedCharacterUseCase creates a new use case
 func NewGetEnrichedCharacterUseCase(
 	characterRepo repositories.CharacterRepository,
 	characterService *services.CharacterService,
+	enrichmentRepo repositories.EnrichmentRepository,
 ) *GetEnrichedCharacterUseCase {
 	return &GetEnrichedCharacterUseCase{
 		characterRepo:    characterRepo,
 		characterService: characterService,
+		enrichmentRepo:   enrichmentRepo,
 	}
 }
 
@@ -94,6 +101,9 @@ func (uc *GetEnrichedCharacterUseCase) Execute(characterName string) (*dtos.Enri
 	// Calculate skills with proficiency
 	skills, skillProfs := uc.calculateSkills(character, strMod, dexMod, conMod, intMod, wisMod, chaMod, profBonus)
 
+	// Calculate weapon attacks with enrichment data
+	weaponAttacks := uc.calculateWeaponAttacks(character, strMod, dexMod, profBonus)
+
 	// Build enriched DTO
 	enriched := &dtos.EnrichedCharacterDTO{
 		CharacterDTO:      *dtos.ToCharacterDTO(character),
@@ -123,6 +133,7 @@ func (uc *GetEnrichedCharacterUseCase) Execute(characterName string) (*dtos.Enri
 		ChaSaveProf:       chaSaveProf,
 		Skills:            skills,
 		SkillProfs:        skillProfs,
+		WeaponAttacks:     weaponAttacks,
 	}
 
 	return enriched, nil
@@ -187,4 +198,118 @@ func (uc *GetEnrichedCharacterUseCase) calculateSkills(
 	}
 
 	return skills, skillProfs
+}
+
+func (uc *GetEnrichedCharacterUseCase) calculateWeaponAttacks(
+	character *entities.Character,
+	strMod, dexMod int,
+	profBonus int,
+) []dtos.WeaponAttackDTO {
+	attacks := []dtos.WeaponAttackDTO{}
+
+	// Add weapon if equipped
+	if character.Weapon != "" {
+		attack := uc.calculateSingleWeaponAttack(character.Weapon, strMod, dexMod, profBonus, character.Name)
+		if attack != nil {
+			attacks = append(attacks, *attack)
+		}
+	}
+
+	// Add off-hand if equipped
+	if character.OffHand != "" {
+		attack := uc.calculateSingleWeaponAttack(character.OffHand, strMod, dexMod, profBonus, character.Name)
+		if attack != nil {
+			attacks = append(attacks, *attack)
+		}
+	}
+
+	return attacks
+}
+
+func (uc *GetEnrichedCharacterUseCase) calculateSingleWeaponAttack(
+	weaponName string,
+	strMod, dexMod int,
+	profBonus int,
+	characterName string,
+) *dtos.WeaponAttackDTO {
+	if weaponName == "" {
+		return nil
+	}
+
+	// Try to load enriched data from JSON file
+	enrichedPath := filepath.Join("data", "enrichments", characterName+".json")
+	enrichedData := make(map[string]interface{})
+	
+	if data, err := os.ReadFile(enrichedPath); err == nil {
+		json.Unmarshal(data, &enrichedData)
+	}
+
+	// Try to get weapon info from enriched.equipment
+	var damageText, properties string
+	if enriched, ok := enrichedData["enriched"].(map[string]interface{}); ok {
+		if equipment, ok := enriched["equipment"].(map[string]interface{}); ok {
+			if weaponData, ok := equipment[weaponName].(map[string]interface{}); ok {
+				if dt, ok := weaponData["damage_text"].(string); ok {
+					damageText = dt
+				}
+				if props, ok := weaponData["properties"].(string); ok {
+					properties = props
+				}
+			}
+		}
+	}
+
+	// If no enriched data, use basic weapon data as fallback
+	if damageText == "" {
+		return uc.calculateBasicWeaponAttack(weaponName, strMod, dexMod, profBonus)
+	}
+
+	// Determine which ability mod to use
+	abilityMod := strMod
+	isFinesse := strings.Contains(strings.ToLower(properties), "finesse")
+	if isFinesse && dexMod > strMod {
+		abilityMod = dexMod
+	}
+
+	// Attack bonus = ability mod + proficiency bonus
+	attackBonus := abilityMod + profBonus
+
+	// Format attack bonus with sign
+	attackBonusStr := formatSigned(attackBonus)
+
+	// Format damage: dice + ability mod (e.g., "1d6+5")
+	damage := damageText
+	if abilityMod != 0 {
+		damage = damage + formatSigned(abilityMod)
+	}
+
+	return &dtos.WeaponAttackDTO{
+		Name:        weaponName,
+		AttackBonus: attackBonusStr,
+		Damage:      damage,
+	}
+}
+
+func (uc *GetEnrichedCharacterUseCase) calculateBasicWeaponAttack(
+	weaponName string,
+	strMod, dexMod int,
+	profBonus int,
+) *dtos.WeaponAttackDTO {
+	// Fallback when enrichment data is not available
+	// Use STR mod by default for unknown weapons
+	abilityMod := strMod
+	attackBonus := abilityMod + profBonus
+
+	return &dtos.WeaponAttackDTO{
+		Name:        weaponName,
+		AttackBonus: formatSigned(attackBonus),
+		Damage:      "unknown (enrich character first)",
+	}
+}
+
+func formatSigned(n int) string {
+	if n >= 0 {
+		return fmt.Sprintf("+%d", n)
+	}
+	return fmt.Sprintf("%d", n)
 }
