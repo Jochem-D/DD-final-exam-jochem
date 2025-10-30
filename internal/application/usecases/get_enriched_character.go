@@ -69,6 +69,9 @@ func (uc *GetEnrichedCharacterUseCase) Execute(characterName string) (*dtos.Enri
 	// Determine speed (racial speed - simplified)
 	speed := uc.getSpeed(character.Race)
 
+	// Calculate maximum hit points
+	maxHP := uc.characterService.ComputeMaxHP(character)
+
 	// Calculate saving throws with proficiency
 	strSaveProf := uc.characterService.IsSaveProficient(character, "Strength")
 	dexSaveProf := uc.characterService.IsSaveProficient(character, "Dexterity")
@@ -123,6 +126,7 @@ func (uc *GetEnrichedCharacterUseCase) Execute(characterName string) (*dtos.Enri
 		Initiative:        initiative,
 		PassivePerception: passivePerception,
 		Speed:             speed,
+		MaxHP:             maxHP,
 		StrSave:           strSave,
 		DexSave:           dexSave,
 		ConSave:           conSave,

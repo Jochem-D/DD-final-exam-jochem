@@ -15,12 +15,13 @@ type EnrichedCharacterDTO struct {
 	ChaMod int `json:"cha_mod"`
 	
 	// Derived Stats
-	ProficiencyBonus int    `json:"proficiency_bonus"`
-	ArmorClass       int    `json:"armor_class"`
-	ACCalculation    string `json:"ac_calculation"`
-	Initiative       int    `json:"initiative"`
-	PassivePerception int   `json:"passive_perception"`
-	Speed            int    `json:"speed"`
+	ProficiencyBonus  int    `json:"proficiency_bonus"`
+	ArmorClass        int    `json:"armor_class"`
+	ACCalculation     string `json:"ac_calculation"`
+	Initiative        int    `json:"initiative"`
+	PassivePerception int    `json:"passive_perception"`
+	Speed             int    `json:"speed"`
+	MaxHP             int    `json:"max_hp"` 
 	
 	// Saving Throws (with proficiency applied)
 	StrSave int  `json:"str_save"`

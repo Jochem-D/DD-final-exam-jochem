@@ -183,3 +183,74 @@ func (s *CharacterService) ComputeSkillModifier(char *entities.Character, skill 
 	
 	return abilityMod
 }
+
+// ComputeMaxHP calculates maximum hit points based on class, level, and CON (exam rules)
+func (s *CharacterService) ComputeMaxHP(char *entities.Character) int {
+	if char.Level <= 0 {
+		return 0
+	}
+
+	conMod := valueobjects.AbilityModifier(char.Con)
+
+	// After level 1: fixed average
+	fixed := s.getHitDieForClass(char.Class) // 7/6/5/4
+	// Level 1: max die value per class
+	maxDie := s.getMaxDieForClass(char.Class) // 12/10/8/6
+
+	// Level 1
+	hp := maxDie + conMod
+
+	// Levels 2..N
+	if char.Level > 1 {
+		hp += (char.Level - 1) * (fixed + conMod)
+	}
+
+	if hp < 1 {
+		hp = 1
+	}
+	return hp
+}
+
+
+// getHitDieForClass returns the fixed average HP per level for each class
+func (s *CharacterService) getHitDieForClass(class string) int {
+	classLower := strings.ToLower(strings.TrimSpace(class))
+	
+	hitDieMap := map[string]int{
+		"barbarian": 7, // d12
+		"fighter":   6, // d10
+		"paladin":   6, // d10
+		"ranger":    6, // d10
+		"bard":      5, // d8
+		"cleric":    5, // d8
+		"druid":     5, // d8
+		"monk":      5, // d8
+		"rogue":     5, // d8
+		"warlock":   5, // d8
+		"sorcerer":  4, // d6
+		"wizard":    4, // d6
+	}
+	
+	if hitDie, ok := hitDieMap[classLower]; ok {
+		return hitDie
+	}
+	
+	// Default to d8 (5) if class is not found
+	return 5
+}
+
+// getMaxDieForClass returns the max hit die value used at level 1
+func (s *CharacterService) getMaxDieForClass(class string) int {
+	classLower := strings.ToLower(strings.TrimSpace(class))
+
+	switch classLower {
+	case "barbarian":
+		return 12
+	case "fighter", "paladin", "ranger":
+		return 10
+	case "wizard", "sorcerer":
+		return 6
+	default: // d8 bucket (rogue, bard, cleric, druid, monk, warlock, artificer, etc.)
+		return 8
+	}
+}

@@ -14,6 +14,8 @@ type Character struct {
 	Wis        int      `json:"wis"`
 	Cha        int      `json:"cha"`
 
+	MaxHP int `json:"max_hp,omitempty"`
+
 	ProficiencyBonus   int      `json:"proficiency_bonus,omitempty"`
 	SkillProficiencies []string `json:"skill_proficiencies,omitempty"`
 

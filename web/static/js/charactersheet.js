@@ -92,6 +92,8 @@ function populateCharacterSheet(data) {
   setFieldValue("ac", data.armor_class);
   setFieldValue("initiative", signed(data.initiative));
   setFieldValue("passiveperception", data.passive_perception);
+  setFieldValue("speed", data.speed);
+  setFieldValue("maxhp", data.max_hp);
   
 
   // Saving Throws

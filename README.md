@@ -94,7 +94,7 @@ DDsheetfinal/
 
 ## Architecture
 
-This project follows **Onion Architecture** (aka Clean Architecture):
+This project follows **Onion Architecture**:
 
 - **Domain Layer** 
 - **Application Layer**
