@@ -214,7 +214,7 @@ func TestSaveEnrichedCharacterEnrichmentDir(t *testing.T) {
 	
 	outPath, err := handler.saveEnrichedCharacter("TestCharacter", testData, false)
 	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
+		t.Fatalf(errUnexpected, err)
 	}
 	
 	expectedPath := filepath.Join("data", "enrichments", "TestCharacter.json")
@@ -266,7 +266,7 @@ func TestSaveEnrichedCharacterCreatesDirectory(t *testing.T) {
 	
 	_, err := handler.saveEnrichedCharacter("TestCharacter", testData, false)
 	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
+		t.Fatalf(errUnexpected, err)
 	}
 	
 	// Verify directory was created

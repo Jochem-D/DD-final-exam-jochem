@@ -24,177 +24,14 @@ index 0000000..ad8c762
 +.DS_Store
 +Thumbs.db
 \ No newline at end of file
-diff --git a/README.md b/README.md
-index a2beefd..ba41138 100644
---- a/README.md
-+++ b/README.md
-@@ -1 +1,165 @@
--# My Project
-+# D&D Character Sheet Manager
-+
-+A command-line tool for managing D&D 5e characters
-+
-+## Project Structure
-+
-+```
-+DDsheetfinal/
-+├── cmd/                                    # Application entry points
-+│   └── ddsheet/
-+│       └── main.go                        # CLI entry point, routes commands
-+│
-+├── internal/                              
-+│   ├── domain/                            # Domain Layer
-+│   │   ├── entities/
-+│   │   │   └── character.go              
-+│   │   ├── valueobjects/
-+│   │   │   ├── abilities.go              # Ability modifiers, proficiency bonus
-+│   │   │   ├── armor.go                  # Armor types and AC info
-+│   │   │   └── srd_data.go               # Skill/class/race mappings
-+│   │   ├── repositories/                  # Repository interfaces
-+│   │   │   ├── character_repository.go
-+│   │   │   ├── enrichment_repository.go
-+│   │   │   └── srd_repository.go
-+│   │   └── services/
-+│   │       └── character_service.go      # Domain logic (AC, saves, skills)
-+│   │
-+│   ├── application/                       # Application Layer
-+│   │   └── usecases/
-+│   │       ├── create_character.go
-+│   │       ├── view_character.go
-+│   │       ├── list_characters.go
-+│   │       ├── delete_character.go
-+│   │       ├── equip_item.go
-+│   │       ├── unequip_item.go
-+│   │       ├── learn_spell.go
-+│   │       ├── prepare_spell.go
-+│   │       ├── get_learnable_spells.go
-+│   │       ├── enrich_character.go        # API enrichment
-+│   │       └── serve_http.go
-+│   │
-+│   ├── infrastructure/                    # Infrastructure Layer
-+│   │   ├── persistence/
-+│   │   │   ├── json_character_repository.go  
-+│   │   │   └── csv_srd_repository.go         
-+│   │   ├── external/
-+│   │   │   └── dnd5eapi_enrichment_repository.go  # D&D 5e API client
-+│   │   └── di/
-+│   │       └── container.go              # Dependency injection container
-+│   │
-+│   └── presentation/                      # Presentation Layer (UI)
-+│       └── cli/
-+│           ├── create_handler.go
-+│           ├── view_handler.go
-+│           ├── list_handler.go
-+│           ├── delete_handler.go
-+│           ├── equip_handler.go
-+│           ├── unequip_handler.go
-+│           ├── learn_spell_handler.go
-+│           ├── prepare_spell_handler.go
-+│           ├── learnable_spells_handler.go
-+│           ├── enrich_handler.go
-+│           ├── serve_handler.go           # HTTP server
-+│           └── help_handler.go
-+│
-+├── assets/                                 # Static resources
-+│   └── srd/
-+│       ├── 5e-SRD-Equipment.csv
-+│       └── 5e-SRD-Spells.csv
-+│
-+├── data/                                   # Runtime data (gitignored, preserves structure)
-+│   ├── characters/                        # Character JSON files
-+│   │   └── .gitkeep
-+│   ├── enrichments/                       # Enriched character data
-+│   └── cache/                             # API response cache
-+│       ├── spells.json
-+│       └── equipment.json
-+│
-+├── web/                                    # Web frontend
-+│   ├── static/
-+│   │   ├── index.html                     
-+│   │   ├── charactersheet.html            
-+│   │   ├── css/
-+│   │   │   ├── normalize.css
-+│   │   │   └── style.css
-+│   │   └── js/
-+│   │       ├── list.js
-+│   │       └── charactersheet.js
-+│   └── manifest.json
-+│
-+├── go.mod
-+└── README.md
-+```
-+
-+## Architecture
-+
-+This project follows **Onion Architecture** (aka Clean Architecture):
-+
-+- **Domain Layer** 
-+- **Application Layer**
-+- **Infrastructure Layer**
-+- **Presentation Layer**
-+
-+## Building
-+
-+```bash
-+go build -o ddsheet ./cmd/ddsheet
-+```
-+
-+## Usage
-+
-+```bash
-+# Create a character
-+./ddsheet create -name Gandalf -race Human -class Wizard -level 20 -str 10 -dex 10 -con 10 -int 20 -wis 18 -cha 14
-+
-+# View character details
-+./ddsheet view -name Gandalf
-+
-+# List all characters
-+./ddsheet list
-+
-+# Delete a character
-+./ddsheet delete -name Gandalf
-+
-+# Equip items
-+./ddsheet equip -name Gandalf -weapon Quarterstaff
-+./ddsheet equip -name Gandalf -armor "Leather Armor"
-+./ddsheet equip -name Gandalf -shield Shield
-+
-+# Unequip items
-+./ddsheet unequip -name Gandalf -weapon
-+./ddsheet unequip -name Gandalf -armor
-+./ddsheet unequip -name Gandalf -shield
-+
-+# Learn and prepare spells
-+./ddsheet learn-spell -name Gandalf -spell "Fireball"
-+./ddsheet prepare-spell -name Gandalf -spell "Fireball"
-+./ddsheet learnable-spells -name Gandalf
-+
-+# Enrich character with D&D 5e API data
-+./ddsheet enrich Gandalf
-+./ddsheet enrich Gandalf --inplace           # Save enrichment to character file
-+./ddsheet enrich Gandalf --force             # Re-fetch even if cached
-+./ddsheet enrich Gandalf --fetch-all         # Pre-cache all spells and equipment
-+
-+# Start web server
-+./ddsheet serve                              # Runs on http://localhost:8080
-+./ddsheet serve -port 3000                   # Custom port
-+
-+# Show all commands
-+./ddsheet help
-+```
-+
-+## Features
-+
-+- Character creation with racial bonuses and skill proficiencies
-+- Equipment management with AC calculation
-+- Spell learning and preparation (class-specific)
-+- Derived stat calculation (initiative, passive perception, etc.)
-+- JSON-based character storage
-+- CSV-based SRD data access
-+- External API integration for enrichment (dnd5eapi)
-+
-+## Development
-+All components are wired together via dependency injection (I hope)
+diff --git a/5e-SRD-Equipment.csv b/assets/srd/5e-SRD-Equipment.csv
+similarity index 100%
+rename from 5e-SRD-Equipment.csv
+rename to assets/srd/5e-SRD-Equipment.csv
+diff --git a/5e-SRD-Spells.csv b/assets/srd/5e-SRD-Spells.csv
+similarity index 100%
+rename from 5e-SRD-Spells.csv
+rename to assets/srd/5e-SRD-Spells.csv
 diff --git a/cmd/create.go b/cmd/create.go
 deleted file mode 100644
 index 7bc06c0..0000000
@@ -4639,7 +4476,7 @@ index 0000000..aaf71e0
 +}
 diff --git a/internal/application/dtos/enriched_character_dto.go b/internal/application/dtos/enriched_character_dto.go
 new file mode 100644
-index 0000000..b63a098
+index 0000000..1486edb
 --- /dev/null
 +++ b/internal/application/dtos/enriched_character_dto.go
 @@ -0,0 +1,57 @@
@@ -4789,9 +4626,150 @@ index 0000000..dd0ac47
 +	copy(dst, src)
 +	return dst
 +}
+diff --git a/internal/application/usecases/character_operations_test.go b/internal/application/usecases/character_operations_test.go
+new file mode 100644
+index 0000000..ae6f98f
+--- /dev/null
++++ b/internal/application/usecases/character_operations_test.go
+@@ -0,0 +1,135 @@
++package usecases
++
++import (
++	"errors"
++	"testing"
++
++	"ddsheetfinal/internal/domain/entities"
++)
++
++const errExpectedNoError = "Expected no error, got %v"
++
++func TestDeleteCharacterSuccess(t *testing.T) {
++	deletedName := ""
++	mockRepo := &MockCharacterRepository{
++		DeleteFunc: func(name string) error {
++			deletedName = name
++			return nil
++		},
++	}
++
++	useCase := NewDeleteCharacterUseCase(mockRepo)
++	err := useCase.Execute("Gandalf")
++
++	if err != nil {
++		t.Errorf(errExpectedNoError, err)
++	}
++
++	if deletedName != "Gandalf" {
++		t.Errorf("Expected to delete 'Gandalf', got %s", deletedName)
++	}
++}
++
++func TestDeleteCharacterError(t *testing.T) {
++	mockRepo := &MockCharacterRepository{
++		DeleteFunc: func(name string) error {
++			return errors.New("character not found")
++		},
++	}
++
++	useCase := NewDeleteCharacterUseCase(mockRepo)
++	err := useCase.Execute("NonExistent")
++
++	if err == nil {
++		t.Error("Expected error, got nil")
++	}
++}
++
++func TestListCharactersSuccess(t *testing.T) {
++	mockRepo := &MockCharacterRepository{
++		ListFunc: func() ([]string, error) {
++			return []string{"Gandalf", "Aragorn", "Frodo"}, nil
++		},
++	}
++
++	useCase := NewListCharactersUseCase(mockRepo)
++	result, err := useCase.Execute()
++
++	if err != nil {
++		t.Errorf(errExpectedNoError, err)
++	}
++
++	if len(result.Names) != 3 {
++		t.Errorf("Expected 3 characters, got %d", len(result.Names))
++	}
++
++	if result.Names[0] != "Gandalf" {
++		t.Errorf("Expected first character 'Gandalf', got %s", result.Names[0])
++	}
++}
++
++func TestListCharactersEmpty(t *testing.T) {
++	mockRepo := &MockCharacterRepository{
++		ListFunc: func() ([]string, error) {
++			return []string{}, nil
++		},
++	}
++
++	useCase := NewListCharactersUseCase(mockRepo)
++	result, err := useCase.Execute()
++
++	if err != nil {
++		t.Errorf(errExpectedNoError, err)
++	}
++
++	if len(result.Names) != 0 {
++		t.Errorf("Expected 0 characters, got %d", len(result.Names))
++	}
++}
++
++func TestGetCharacterSuccess(t *testing.T) {
++	mockRepo := &MockCharacterRepository{
++		FindByNameFunc: func(name string) (*entities.Character, error) {
++			return &entities.Character{
++				Name:  name,
++				Race:  "Human",
++				Class: "Wizard",
++				Level: 5,
++			}, nil
++		},
++	}
++
++	useCase := NewGetCharacterUseCase(mockRepo)
++	result, err := useCase.Execute("Gandalf")
++
++	if err != nil {
++		t.Errorf(errExpectedNoError, err)
++	}
++
++	if result == nil {
++		t.Fatal("Expected result, got nil")
++	}
++
++	if result.Name != "Gandalf" {
++		t.Errorf("Expected name 'Gandalf', got %s", result.Name)
++	}
++}
++
++func TestGetCharacterNotFound(t *testing.T) {
++	mockRepo := &MockCharacterRepository{
++		FindByNameFunc: func(name string) (*entities.Character, error) {
++			return nil, errors.New("character not found")
++		},
++	}
++
++	useCase := NewGetCharacterUseCase(mockRepo)
++	result, err := useCase.Execute("NonExistent")
++
++	if err == nil {
++		t.Error("Expected error, got nil")
++	}
++
++	if result != nil {
++		t.Error("Expected nil result")
++	}
++}
 diff --git a/internal/application/usecases/create_character.go b/internal/application/usecases/create_character.go
 new file mode 100644
-index 0000000..26f7913
+index 0000000..1d305d4
 --- /dev/null
 +++ b/internal/application/usecases/create_character.go
 @@ -0,0 +1,164 @@
@@ -4959,6 +4937,226 @@ index 0000000..26f7913
 +
 +	return
 +}
+diff --git a/internal/application/usecases/create_character_test.go b/internal/application/usecases/create_character_test.go
+new file mode 100644
+index 0000000..221944d
+--- /dev/null
++++ b/internal/application/usecases/create_character_test.go
+@@ -0,0 +1,214 @@
++package usecases
++
++import (
++	"testing"
++
++	"ddsheetfinal/internal/application/dtos"
++	"ddsheetfinal/internal/domain/entities"
++)
++
++const (
++	errExpectedNilResult = "Expected nil result for invalid input"
++)
++
++// MockCharacterRepository is a simple mock for testing
++type MockCharacterRepository struct {
++	SaveFunc       func(character *entities.Character) error
++	FindByNameFunc func(name string) (*entities.Character, error)
++	DeleteFunc     func(name string) error
++	ListFunc       func() ([]string, error)
++	ExistsFunc     func(name string) bool
++}
++
++func (m *MockCharacterRepository) Save(character *entities.Character) error {
++	if m.SaveFunc != nil {
++		return m.SaveFunc(character)
++	}
++	return nil
++}
++
++func (m *MockCharacterRepository) FindByName(name string) (*entities.Character, error) {
++	if m.FindByNameFunc != nil {
++		return m.FindByNameFunc(name)
++	}
++	return nil, nil
++}
++
++func (m *MockCharacterRepository) Delete(name string) error {
++	if m.DeleteFunc != nil {
++		return m.DeleteFunc(name)
++	}
++	return nil
++}
++
++func (m *MockCharacterRepository) List() ([]string, error) {
++	if m.ListFunc != nil {
++		return m.ListFunc()
++	}
++	return []string{}, nil
++}
++
++func (m *MockCharacterRepository) Exists(name string) bool {
++	if m.ExistsFunc != nil {
++		return m.ExistsFunc(name)
++	}
++	return false
++}
++
++func TestCreateCharacterSuccess(t *testing.T) {
++	var savedCharacter *entities.Character
++	mockRepo := &MockCharacterRepository{
++		SaveFunc: func(character *entities.Character) error {
++			savedCharacter = character
++			return nil
++		},
++	}
++
++	useCase := NewCreateCharacterUseCase(mockRepo)
++
++	input := dtos.CreateCharacterDTO{
++		Name:  "Gandalf",
++		Race:  "Human",
++		Class: "Wizard",
++		Level: 5,
++		Str:   10,
++		Dex:   14,
++		Con:   12,
++		Int:   20,
++		Wis:   16,
++		Cha:   14,
++	}
++
++	result, err := useCase.Execute(input)
++
++	if err != nil {
++		t.Fatalf("Expected no error, got %v", err)
++	}
++
++	if result == nil {
++		t.Fatal("Expected result, got nil")
++	}
++
++	if result.Name != "Gandalf" {
++		t.Errorf("Expected name 'Gandalf', got %s", result.Name)
++	}
++
++	if savedCharacter == nil {
++		t.Fatal("Expected character to be saved")
++	}
++
++	if savedCharacter.Name != "Gandalf" {
++		t.Errorf("Expected saved character name 'Gandalf', got %s", savedCharacter.Name)
++	}
++}
++
++func TestCreateCharacterMissingName(t *testing.T) {
++	mockRepo := &MockCharacterRepository{}
++	useCase := NewCreateCharacterUseCase(mockRepo)
++
++	input := dtos.CreateCharacterDTO{
++		Race:  "Human",
++		Class: "Wizard",
++		Level: 5,
++	}
++
++	result, err := useCase.Execute(input)
++
++	if err == nil {
++		t.Error("Expected error for missing name, got nil")
++	}
++
++	if result != nil {
++		t.Error(errExpectedNilResult)
++	}
++}
++
++func TestCreateCharacterMissingRace(t *testing.T) {
++	mockRepo := &MockCharacterRepository{}
++	useCase := NewCreateCharacterUseCase(mockRepo)
++
++	input := dtos.CreateCharacterDTO{
++		Name:  "Gandalf",
++		Class: "Wizard",
++		Level: 5,
++	}
++
++	result, err := useCase.Execute(input)
++
++	if err == nil {
++		t.Error("Expected error for missing race, got nil")
++	}
++
++	if result != nil {
++		t.Error(errExpectedNilResult)
++	}
++}
++
++func TestCreateCharacterMissingClass(t *testing.T) {
++	mockRepo := &MockCharacterRepository{}
++	useCase := NewCreateCharacterUseCase(mockRepo)
++
++	input := dtos.CreateCharacterDTO{
++		Name:  "Gandalf",
++		Race:  "Human",
++		Level: 5,
++	}
++
++	result, err := useCase.Execute(input)
++
++	if err == nil {
++		t.Error("Expected error for missing class, got nil")
++	}
++
++	if result != nil {
++		t.Error(errExpectedNilResult)
++	}
++}
++
++func TestCreateCharacterRacialBonuses(t *testing.T) {
++	mockRepo := &MockCharacterRepository{}
++	useCase := NewCreateCharacterUseCase(mockRepo)
++
++	tests := []struct {
++		name        string
++		race        string
++		baseStr     int
++		expectedStr int
++	}{
++		{"Human gets +1 to all", "Human", 10, 11},
++		{"Dwarf gets +2 CON", "Dwarf", 10, 10},
++		{"Elf no STR bonus", "Elf", 10, 10},
++	}
++
++	for _, tt := range tests {
++		t.Run(tt.name, func(t *testing.T) {
++			var saved *entities.Character
++			mockRepo.SaveFunc = func(character *entities.Character) error {
++				saved = character
++				return nil
++			}
++
++			input := dtos.CreateCharacterDTO{
++				Name:  "Test",
++				Race:  tt.race,
++				Class: "Fighter",
++				Level: 1,
++				Str:   tt.baseStr,
++				Dex:   10,
++				Con:   10,
++				Int:   10,
++				Wis:   10,
++				Cha:   10,
++			}
++
++			_, err := useCase.Execute(input)
++			if err != nil {
++				t.Fatalf("Unexpected error: %v", err)
++			}
++
++			if saved.Str != tt.expectedStr {
++				t.Errorf("Expected STR %d, got %d", tt.expectedStr, saved.Str)
++			}
++		})
++	}
++}
 diff --git a/internal/application/usecases/delete_character.go b/internal/application/usecases/delete_character.go
 new file mode 100644
 index 0000000..48065dc
@@ -4987,7 +5185,7 @@ index 0000000..48065dc
 +}
 diff --git a/internal/application/usecases/derive_stats.go b/internal/application/usecases/derive_stats.go
 new file mode 100644
-index 0000000..6549e88
+index 0000000..2351eff
 --- /dev/null
 +++ b/internal/application/usecases/derive_stats.go
 @@ -0,0 +1,101 @@
@@ -5091,6 +5289,318 @@ index 0000000..6549e88
 +		Skills:           skills,
 +		ProficiencyBonus: profBonus,
 +	}, nil
++}
+diff --git a/internal/application/usecases/derive_view_learnable_test.go b/internal/application/usecases/derive_view_learnable_test.go
+new file mode 100644
+index 0000000..49235eb
+--- /dev/null
++++ b/internal/application/usecases/derive_view_learnable_test.go
+@@ -0,0 +1,306 @@
++package usecases
++
++import (
++	"errors"
++	"testing"
++
++	"ddsheetfinal/internal/domain/entities"
++	"ddsheetfinal/internal/domain/services"
++)
++
++const (
++	errMsgNotFound = "character not found"
++	testWarrior    = "Warrior"
++	testBarbarian  = "Barbarian"
++)
++
++// ========== DeriveCharacterStatsUseCase Tests ==========
++
++func TestDeriveStatsSuccess(t *testing.T) {
++	mockRepo := &MockCharacterRepository{
++		FindByNameFunc: func(name string) (*entities.Character, error) {
++			return &entities.Character{
++				Name:  testWarrior,
++				Race:  "Human",
++				Class: "Fighter",
++				Level: 5,
++				Str:   18,
++				Dex:   14,
++				Con:   16,
++				Int:   10,
++				Wis:   12,
++				Cha:   8,
++				Armor: "Chain Mail",
++				SkillProficiencies: []string{"athletics", "intimidation"},
++			}, nil
++		},
++	}
++
++	useCase := NewDeriveCharacterStatsUseCase(mockRepo, services.NewCharacterService())
++	stats, err := useCase.Execute(testWarrior)
++
++	if err != nil {
++		t.Errorf("Expected no error, got %v", err)
++	}
++
++	if stats == nil {
++		t.Fatal("Expected stats, got nil")
++	}
++
++	// Fighter level 5 has +3 proficiency bonus
++	if stats.ProficiencyBonus != 3 {
++		t.Errorf("Expected proficiency bonus 3, got %d", stats.ProficiencyBonus)
++	}
++
++	// STR 18 = +4 modifier
++	if stats.StrMod != 4 {
++		t.Errorf("Expected STR modifier 4, got %d", stats.StrMod)
++	}
++
++	// DEX 14 = +2 modifier
++	if stats.DexMod != 2 {
++		t.Errorf("Expected DEX modifier 2, got %d", stats.DexMod)
++	}
++
++	// Chain Mail AC = 16
++	if stats.AC < 16 {
++		t.Errorf("Expected AC >= 16 for Chain Mail, got %d", stats.AC)
++	}
++}
++
++func TestDeriveStatsCharacterNotFound(t *testing.T) {
++	mockRepo := &MockCharacterRepository{
++		FindByNameFunc: func(name string) (*entities.Character, error) {
++			return nil, errors.New(errMsgNotFound)
++		},
++	}
++
++	useCase := NewDeriveCharacterStatsUseCase(mockRepo, services.NewCharacterService())
++	stats, err := useCase.Execute("NonExistent")
++
++	if err == nil {
++		t.Error("Expected error for non-existent character")
++	}
++
++	if stats != nil {
++		t.Error("Expected nil stats for error case")
++	}
++}
++
++// ========== ViewCharacterUseCase Tests ==========
++
++func TestViewCharacterSuccess(t *testing.T) {
++	mockRepo := &MockCharacterRepository{
++		FindByNameFunc: func(name string) (*entities.Character, error) {
++			return &entities.Character{
++				Name:               "Gandalf",
++				Race:               "Human",
++				Class:              "Wizard",
++				Level:              10,
++				Str:                10,
++				Dex:                14,
++				Con:                12,
++				Int:                18,
++				Wis:                16,
++				Cha:                13,
++				Background:         "Sage",
++				SkillProficiencies: []string{"arcana", "history"},
++				Spells:             []string{"Fireball", "Magic Missile"},
++				Weapon:             "Staff",
++			}, nil
++		},
++	}
++
++	useCase := NewViewCharacterUseCase(mockRepo, services.NewCharacterService())
++	output, err := useCase.Execute("Gandalf")
++
++	if err != nil {
++		t.Errorf("Expected no error, got %v", err)
++	}
++
++	if output == nil {
++		t.Fatal("Expected output, got nil")
++	}
++
++	if output.Character.Name != "Gandalf" {
++		t.Errorf("Expected name 'Gandalf', got %s", output.Character.Name)
++	}
++
++	if output.ArmorClass == 0 {
++		t.Error("Expected AC to be calculated")
++	}
++
++	if output.InitiativeBonus == 0 {
++		t.Error("Expected Initiative to be calculated")
++	}
++
++	if output.ProficiencyBonus == 0 {
++		t.Error("Expected ProficiencyBonus to be calculated")
++	}
++}
++
++func TestViewCharacterNotFound(t *testing.T) {
++	mockRepo := &MockCharacterRepository{
++		FindByNameFunc: func(name string) (*entities.Character, error) {
++			return nil, errors.New(errMsgNotFound)
++		},
++	}
++
++	useCase := NewViewCharacterUseCase(mockRepo, services.NewCharacterService())
++	output, err := useCase.Execute("NonExistent")
++
++	if err == nil {
++		t.Error("Expected error for non-existent character")
++	}
++
++	if output != nil {
++		t.Error("Expected nil output for error case")
++	}
++}
++
++// ========== GetLearnableSpellsUseCase Tests ==========
++
++func TestGetLearnableSpellsSuccess(t *testing.T) {
++	mockRepo := &MockCharacterRepository{
++		FindByNameFunc: func(name string) (*entities.Character, error) {
++			return &entities.Character{
++				Name:   "Sorcerer",
++				Race:   "Human",
++				Class:  "Sorcerer",
++				Level:  3,
++				Spells: []string{"Magic Missile"},
++			}, nil
++		},
++	}
++
++	mockSRD := &mockSRDRepository{
++		GetLearnableSpellsFunc: func(className string, knownSpells []string) ([]string, error) {
++			return []string{"Fireball", "Lightning Bolt", "Haste"}, nil
++		},
++	}
++
++	useCase := NewGetLearnableSpellsUseCase(mockRepo, mockSRD)
++	spells, err := useCase.Execute("Sorcerer")
++
++	if err != nil {
++		t.Errorf("Expected no error, got %v", err)
++	}
++
++	if spells == nil || len(spells) == 0 {
++		t.Error("Expected learnable spells, got none")
++	}
++
++	expectedCount := 3
++	if len(spells) != expectedCount {
++		t.Errorf("Expected %d learnable spells, got %d", expectedCount, len(spells))
++	}
++}
++
++func TestGetLearnableSpellsNonSpellcaster(t *testing.T) {
++	mockRepo := &MockCharacterRepository{
++		FindByNameFunc: func(name string) (*entities.Character, error) {
++			return &entities.Character{
++				Name:  testBarbarian,
++				Race:  "Human",
++				Class: "Barbarian",
++				Level: 5,
++			}, nil
++		},
++	}
++
++	mockSRD := &mockSRDRepository{}
++
++	useCase := NewGetLearnableSpellsUseCase(mockRepo, mockSRD)
++	spells, err := useCase.Execute(testBarbarian)
++
++	if err == nil {
++		t.Error("Expected error for non-spellcaster class")
++	}
++
++	if spells != nil {
++		t.Error("Expected nil spells for non-spellcaster")
++	}
++}
++
++func TestGetLearnableSpellsCharacterNotFound(t *testing.T) {
++	mockRepo := &MockCharacterRepository{
++		FindByNameFunc: func(name string) (*entities.Character, error) {
++			return nil, errors.New(errMsgNotFound)
++		},
++	}
++
++	mockSRD := &mockSRDRepository{}
++
++	useCase := NewGetLearnableSpellsUseCase(mockRepo, mockSRD)
++	spells, err := useCase.Execute("NonExistent")
++
++	if err == nil {
++		t.Error("Expected error for non-existent character")
++	}
++
++	if spells != nil {
++		t.Error("Expected nil spells for error case")
++	}
++}
++
++// ========== Additional Error Cases ==========
++
++func TestLearnSpellInvalidClass(t *testing.T) {
++	mockRepo := &MockCharacterRepository{
++		FindByNameFunc: func(name string) (*entities.Character, error) {
++			return &entities.Character{
++				Name:   testBarbarian,
++				Class:  "Barbarian",
++				Level:  5,
++				Spells: []string{},
++			}, nil
++		},
++	}
++
++	mockSRD := &mockSRDRepository{
++		IsValidSpellFunc:    func(s string) bool { return true },
++		IsSpellForClassFunc: func(s, c string) (bool, error) { return true, nil },
++	}
++
++	useCase := NewLearnSpellUseCase(mockRepo, mockSRD)
++	err := useCase.Execute(testBarbarian, "Fireball")
++
++	if err == nil {
++		t.Error("Expected error for non-spellcaster trying to learn spell")
++	}
++}
++
++func TestPrepareSpellNotForClass(t *testing.T) {
++	mockRepo := &MockCharacterRepository{
++		FindByNameFunc: func(name string) (*entities.Character, error) {
++			return &entities.Character{
++				Name:   "Cleric",
++				Class:  "Cleric",
++				Level:  5,
++				Spells: []string{"Cure Wounds", "Guiding Bolt"},
++			}, nil
++		},
++	}
++
++	mockSRD := &mockSRDRepository{
++		IsSpellForClassFunc: func(s, c string) (bool, error) {
++			return false, nil // Spell not for this class
++		},
++		GetSpellLevelFunc: func(s string) (int, error) {
++			return 1, nil
++		},
++	}
++
++	useCase := NewPrepareSpellUseCase(mockRepo, mockSRD)
++
++	input := PrepareSpellInput{
++		CharacterName: "Cleric",
++		SpellName:     "Eldritch Blast", // Warlock spell
++	}
++
++	err := useCase.Execute(input)
++
++	if err == nil {
++		t.Error("Expected error when preparing spell not available to class")
++	}
 +}
 diff --git a/internal/application/usecases/enrich_character.go b/internal/application/usecases/enrich_character.go
 new file mode 100644
@@ -5675,6 +6185,282 @@ index 0000000..2ebb93c
 +		return s
 +	}
 +}
+diff --git a/internal/application/usecases/equipment_spells_test.go b/internal/application/usecases/equipment_spells_test.go
+new file mode 100644
+index 0000000..44ba14c
+--- /dev/null
++++ b/internal/application/usecases/equipment_spells_test.go
+@@ -0,0 +1,270 @@
++package usecases
++
++import (
++	"errors"
++	"testing"
++
++	"ddsheetfinal/internal/application/dtos"
++	"ddsheetfinal/internal/domain/entities"
++)
++
++const (
++	errNoError        = "Expected no error, got %v"
++	errCharSaved      = "Expected character to be saved"
++	spellCureWounds   = "Cure Wounds"
++)
++
++func TestEquipItemSuccess(t *testing.T) {
++	var saved *entities.Character
++	mockRepo := &MockCharacterRepository{
++		FindByNameFunc: func(name string) (*entities.Character, error) {
++			return &entities.Character{
++				Name:      "Fighter",
++				Race:      "Human",
++				Class:     "Fighter",
++				Level:     5,
++				Inventory: []string{"Longsword", "Chain Mail"},
++			}, nil
++		},
++		SaveFunc: func(character *entities.Character) error {
++			saved = character
++			return nil
++		},
++	}
++
++	// simple SRD mock
++	mockSRD := &mockSRDRepository{
++		IsValidEquipmentFunc: func(e string) bool { return true },
++	}
++
++	useCase := NewEquipItemUseCase(mockRepo, mockSRD)
++
++	input := EquipItemInput{
++		CharacterName: "Fighter",
++		Weapon:        "Longsword",
++		Slot:          "main hand",
++	}
++
++	err := useCase.Execute(input)
++
++	if err != nil {
++		t.Errorf(errNoError, err)
++	}
++
++	if saved == nil {
++		t.Fatal(errCharSaved)
++	}
++
++	if saved.Weapon != "Longsword" {
++		t.Errorf("Expected weapon 'Longsword', got %s", saved.Weapon)
++	}
++}
++
++func TestEquipItemCharacterNotFound(t *testing.T) {
++	mockRepo := &MockCharacterRepository{
++		FindByNameFunc: func(name string) (*entities.Character, error) {
++			return nil, errors.New("character not found")
++		},
++	}
++
++	mockSRD := &mockSRDRepository{IsValidEquipmentFunc: func(e string) bool { return true }}
++	useCase := NewEquipItemUseCase(mockRepo, mockSRD)
++
++	input := EquipItemInput{
++		CharacterName: "NonExistent",
++		Weapon:        "Sword",
++		Slot:          "main hand",
++	}
++
++	err := useCase.Execute(input)
++
++	if err == nil {
++		t.Error("Expected error for non-existent character")
++	}
++}
++
++func TestUnequipItemSuccess(t *testing.T) {
++	var saved *entities.Character
++	mockRepo := &MockCharacterRepository{
++		FindByNameFunc: func(name string) (*entities.Character, error) {
++			return &entities.Character{
++				Name:   "Fighter",
++				Race:   "Human",
++				Class:  "Fighter",
++				Level:  5,
++				Weapon: "Longsword",
++			}, nil
++		},
++		SaveFunc: func(character *entities.Character) error {
++			saved = character
++			return nil
++		},
++	}
++
++	useCase := NewUnequipItemUseCase(mockRepo)
++
++	input := UnequipItemInput{
++		CharacterName: "Fighter",
++		UnequipWeapon: true,
++	}
++
++	err := useCase.Execute(input)
++
++	if err != nil {
++		t.Errorf(errNoError, err)
++	}
++
++	if saved == nil {
++		t.Fatal(errCharSaved)
++	}
++
++	if saved.Weapon != "" {
++		t.Errorf("Expected weapon to be empty, got %s", saved.Weapon)
++	}
++}
++
++func TestLearnSpellSuccess(t *testing.T) {
++	var saved *entities.Character
++	mockRepo := &MockCharacterRepository{
++		FindByNameFunc: func(name string) (*entities.Character, error) {
++			return &entities.Character{
++				Name:   "Bard",
++				Race:   "Human",
++				Class:  "Bard",
++				Level:  5,
++				Spells: []string{"Magic Missile"},
++			}, nil
++		},
++		SaveFunc: func(character *entities.Character) error {
++			saved = character
++			return nil
++		},
++	}
++
++	mockSRD := &mockSRDRepository{
++		IsValidSpellFunc:    func(s string) bool { return true },
++		IsSpellForClassFunc: func(s, c string) (bool, error) { return true, nil },
++		GetSpellLevelFunc:   func(s string) (int, error) { return 3, nil },
++	}
++	useCase := NewLearnSpellUseCase(mockRepo, mockSRD)
++
++	err := useCase.Execute("Bard", "Fireball")
++
++	if err != nil {
++		t.Errorf(errNoError, err)
++	}
++
++	if saved == nil {
++		t.Fatal(errCharSaved)
++	}
++
++	found := false
++	for _, spell := range saved.Spells {
++		if spell == "Fireball" {
++			found = true
++			break
++		}
++	}
++
++	if !found {
++		t.Error("Expected Fireball to be in learned spells")
++	}
++}
++
++func TestPrepareSpellSuccess(t *testing.T) {
++	var saved *entities.Character
++	mockRepo := &MockCharacterRepository{
++		FindByNameFunc: func(name string) (*entities.Character, error) {
++			return &entities.Character{
++				Name:   "Cleric",
++				Race:   "Human",
++				Class:  "Cleric",
++				Level:  5,
++				Spells: []string{spellCureWounds, "Bless"},
++			}, nil
++		},
++		SaveFunc: func(character *entities.Character) error {
++			saved = character
++			return nil
++		},
++	}
++
++	mockSRD := &mockSRDRepository{
++		IsSpellForClassFunc: func(s, c string) (bool, error) { return true, nil },
++		GetSpellLevelFunc:   func(s string) (int, error) { return 1, nil },
++	}
++	useCase := NewPrepareSpellUseCase(mockRepo, mockSRD)
++
++	input := PrepareSpellInput{
++		CharacterName: "Cleric",
++		SpellName:     spellCureWounds,
++	}
++
++	err := useCase.Execute(input)
++
++	if err != nil {
++		t.Errorf(errNoError, err)
++	}
++
++	if saved == nil {
++		t.Fatal(errCharSaved)
++	}
++
++	found := false
++	for _, spell := range saved.PreparedSpells {
++		if spell == spellCureWounds {
++			found = true
++			break
++		}
++	}
++
++	if !found {
++		t.Error("Expected Cure Wounds to be in prepared spells")
++	}
++}
++
++func TestSaveCharacterSuccess(t *testing.T) {
++	mockRepo := &MockCharacterRepository{
++		SaveFunc: func(character *entities.Character) error {
++			return nil
++		},
++	}
++
++	useCase := NewSaveCharacterUseCase(mockRepo)
++
++	char := &dtos.CharacterDTO{
++		Name:  "TestChar",
++		Race:  "Human",
++		Class: "Fighter",
++		Level: 1,
++	}
++
++	err := useCase.Execute(char)
++
++	if err != nil {
++		t.Errorf(errNoError, err)
++	}
++}
++
++func TestSaveCharacterError(t *testing.T) {
++	mockRepo := &MockCharacterRepository{
++		SaveFunc: func(character *entities.Character) error {
++			return errors.New("save failed")
++		},
++	}
++
++	useCase := NewSaveCharacterUseCase(mockRepo)
++
++	char := &dtos.CharacterDTO{
++		Name:  "TestChar",
++		Race:  "Human",
++		Class: "Fighter",
++		Level: 1,
++	}
++
++	err := useCase.Execute(char)
++
++	if err == nil {
++		t.Error("Expected error, got nil")
++	}
++}
 diff --git a/internal/application/usecases/get_character.go b/internal/application/usecases/get_character.go
 new file mode 100644
 index 0000000..2845729
@@ -5711,10 +6497,10 @@ index 0000000..2845729
 +}
 diff --git a/internal/application/usecases/get_enriched_character.go b/internal/application/usecases/get_enriched_character.go
 new file mode 100644
-index 0000000..9f5a42e
+index 0000000..dd99b61
 --- /dev/null
 +++ b/internal/application/usecases/get_enriched_character.go
-@@ -0,0 +1,317 @@
+@@ -0,0 +1,318 @@
 +package usecases
 +
 +import (
@@ -5735,7 +6521,8 @@ index 0000000..9f5a42e
 +	enrichmentRepo   repositories.EnrichmentRepository
 +}
 +
-+// abilityMods holds all ability modifiers type abilityMods struct {
++// abilityMods holds all ability modifiers
++type abilityMods struct {
 +	str, dex, con, int, wis, cha int
 +}
 +
@@ -6215,6 +7002,65 @@ index 0000000..687c3ae
 +	}
 +	return dtos.ToCharacterListDTO(names), nil
 +}
+diff --git a/internal/application/usecases/mock_srd_repository_test.go b/internal/application/usecases/mock_srd_repository_test.go
+new file mode 100644
+index 0000000..23815a9
+--- /dev/null
++++ b/internal/application/usecases/mock_srd_repository_test.go
+@@ -0,0 +1,53 @@
++package usecases
++
++import (
++    "errors"
++)
++
++// mockSRDRepository is a small test mock implementing repositories.SRDRepository.
++// It exposes function fields so tests can override behavior per-case.
++type mockSRDRepository struct {
++    IsValidSpellFunc    func(spellName string) bool
++    IsValidEquipmentFunc func(equipmentName string) bool
++    IsSpellForClassFunc func(spellName, className string) (bool, error)
++    GetLearnableSpellsFunc func(className string, knownSpells []string) ([]string, error)
++    GetSpellLevelFunc    func(spellName string) (int, error)
++}
++
++func (m *mockSRDRepository) IsValidSpell(spellName string) bool {
++    if m == nil || m.IsValidSpellFunc == nil {
++        return false
++    }
++    return m.IsValidSpellFunc(spellName)
++}
++
++func (m *mockSRDRepository) IsValidEquipment(equipmentName string) bool {
++    if m == nil || m.IsValidEquipmentFunc == nil {
++        return false
++    }
++    return m.IsValidEquipmentFunc(equipmentName)
++}
++
++func (m *mockSRDRepository) IsSpellForClass(spellName, className string) (bool, error) {
++    if m == nil || m.IsSpellForClassFunc == nil {
++        return false, errors.New("IsSpellForClass not implemented in mock")
++    }
++    return m.IsSpellForClassFunc(spellName, className)
++}
++
++func (m *mockSRDRepository) GetLearnableSpells(className string, knownSpells []string) ([]string, error) {
++    if m == nil || m.GetLearnableSpellsFunc == nil {
++        return nil, errors.New("GetLearnableSpells not implemented in mock")
++    }
++    return m.GetLearnableSpellsFunc(className, knownSpells)
++}
++
++func (m *mockSRDRepository) GetSpellLevel(spellName string) (int, error) {
++    if m == nil || m.GetSpellLevelFunc == nil {
++        return 0, errors.New("GetSpellLevel not implemented in mock")
++    }
++    return m.GetSpellLevelFunc(spellName)
++}
++
++// Optional: implement adapter methods to return repositories.EquipmentInfo / SpellInfo
++// if future tests need richer metadata. For now the interface methods above suffice.
 diff --git a/internal/application/usecases/prepare_spell.go b/internal/application/usecases/prepare_spell.go
 new file mode 100644
 index 0000000..557fe48
@@ -6588,7 +7434,7 @@ index 0000000..90cd48d
 +}
 diff --git a/internal/domain/entities/character.go b/internal/domain/entities/character.go
 new file mode 100644
-index 0000000..4693fea
+index 0000000..29c8555
 --- /dev/null
 +++ b/internal/domain/entities/character.go
 @@ -0,0 +1,59 @@
@@ -6650,6 +7496,86 @@ index 0000000..4693fea
 +		}
 +	}
 +	return false
++}
+diff --git a/internal/domain/entities/character_test.go b/internal/domain/entities/character_test.go
+new file mode 100644
+index 0000000..0337fd1
+--- /dev/null
++++ b/internal/domain/entities/character_test.go
+@@ -0,0 +1,74 @@
++package entities
++
++import "testing"
++
++func TestCharacterGetAbilityScore(t *testing.T) {
++	char := &Character{
++		Str: 16,
++		Dex: 14,
++		Con: 13,
++		Int: 12,
++		Wis: 10,
++		Cha: 8,
++	}
++
++	tests := []struct {
++		ability  string
++		expected int
++	}{
++		{"str", 16},
++		{"dex", 14},
++		{"con", 13},
++		{"int", 12},
++		{"wis", 10},
++		{"cha", 8},
++		{"unknown", 10}, // default value
++	}
++
++	for _, tt := range tests {
++		t.Run(tt.ability, func(t *testing.T) {
++			result := char.GetAbilityScore(tt.ability)
++			if result != tt.expected {
++				t.Errorf("GetAbilityScore(%q) = %d; want %d", tt.ability, result, tt.expected)
++			}
++		})
++	}
++}
++
++func TestCharacterHasSkillProficiency(t *testing.T) {
++	char := &Character{
++		Name:               "TestChar",
++		SkillProficiencies: []string{"perception", "stealth", "athletics"},
++	}
++
++	tests := []struct {
++		skill    string
++		expected bool
++	}{
++		{"perception", true},
++		{"stealth", true},
++		{"athletics", true},
++		{"acrobatics", false},
++		{"", false},
++	}
++
++	for _, tt := range tests {
++		t.Run(tt.skill, func(t *testing.T) {
++			result := char.HasSkillProficiency(tt.skill)
++			if result != tt.expected {
++				t.Errorf("HasSkillProficiency(%q) = %v; want %v", tt.skill, result, tt.expected)
++			}
++		})
++	}
++}
++
++func TestCharacterHasSkillProficiencyEmpty(t *testing.T) {
++	char := &Character{
++		Name:               "TestChar",
++		SkillProficiencies: []string{},
++	}
++
++	if char.HasSkillProficiency("perception") {
++		t.Error("Expected false for empty skill proficiencies")
++	}
 +}
 diff --git a/internal/domain/repositories/character_repository.go b/internal/domain/repositories/character_repository.go
 new file mode 100644
@@ -6765,7 +7691,7 @@ index 0000000..49569a3
 +}
 diff --git a/internal/domain/services/character_service.go b/internal/domain/services/character_service.go
 new file mode 100644
-index 0000000..b3cff5d
+index 0000000..3470e42
 --- /dev/null
 +++ b/internal/domain/services/character_service.go
 @@ -0,0 +1,185 @@
@@ -6954,6 +7880,280 @@ index 0000000..b3cff5d
 +	
 +	return abilityMod
 +}
+diff --git a/internal/domain/services/character_service_test.go b/internal/domain/services/character_service_test.go
+new file mode 100644
+index 0000000..5f5e7dd
+--- /dev/null
++++ b/internal/domain/services/character_service_test.go
+@@ -0,0 +1,268 @@
++package services
++
++import (
++	"testing"
++
++	"ddsheetfinal/internal/domain/entities"
++)
++
++func TestComputeArmorClass(t *testing.T) {
++	service := NewCharacterService()
++
++	tests := []struct {
++		name        string
++		char        *entities.Character
++		expectedAC  int
++		description string
++	}{
++		{
++			name: "Unarmored character with 14 DEX",
++			char: &entities.Character{
++				Name:  "Test",
++				Class: "Wizard",
++				Dex:   14,
++			},
++			expectedAC:  12, // 10 + 2 (DEX mod)
++			description: "10 + Dex(+2)",
++		},
++		{
++			name: "Monk unarmored (DEX 16, WIS 18)",
++			char: &entities.Character{
++				Name:  "Monk",
++				Class: "Monk",
++				Dex:   16,
++				Wis:   18,
++			},
++			expectedAC:  17, // 10 + 3 (DEX) + 4 (WIS)
++			description: "10 + Dex(+3) + Wis(+4)",
++		},
++		{
++			name: "Barbarian unarmored (DEX 14, CON 16)",
++			char: &entities.Character{
++				Name:  "Barbarian",
++				Class: "Barbarian",
++				Dex:   14,
++				Con:   16,
++			},
++			expectedAC:  15, // 10 + 2 (DEX) + 3 (CON)
++			description: "10 + Dex(+2) + Con(+3)",
++		},
++		{
++			name: "Light armor (leather) with DEX 18",
++			char: &entities.Character{
++				Name:  "Rogue",
++				Class: "Rogue",
++				Dex:   18,
++				Armor: "Leather",
++			},
++			expectedAC:  15, // 11 (base) + 4 (DEX)
++			description: "11 (light base) + Dex(+4)",
++		},
++		{
++			name: "Medium armor (breastplate) with DEX 16",
++			char: &entities.Character{
++				Name:  "Fighter",
++				Class: "Fighter",
++				Dex:   16,
++				Armor: "Breastplate",
++			},
++			expectedAC:  16, // 14 (base) + 2 (DEX capped)
++			description: "14 (medium base) + Dex cap(+2)",
++		},
++		{
++			name: "Heavy armor (plate) ignores DEX",
++			char: &entities.Character{
++				Name:  "Paladin",
++				Class: "Paladin",
++				Dex:   10,
++				Armor: "Plate",
++			},
++			expectedAC:  18, // 18 (base) + 0 (no DEX)
++			description: "18 (heavy base)",
++		},
++		{
++			name: "Shield adds +2",
++			char: &entities.Character{
++				Name:   "Fighter",
++				Class:  "Fighter",
++				Dex:    14,
++				Armor:  "Chain Mail",
++				Shield: "Shield",
++			},
++			expectedAC:  18, // 16 (heavy base) + 2 (shield)
++			description: "16 (heavy base) + shield(+2)",
++		},
++		{
++			name: "Unarmored with shield",
++			char: &entities.Character{
++				Name:   "Cleric",
++				Class:  "Cleric",
++				Dex:    12,
++				Shield: "Shield",
++			},
++			expectedAC:  13, // 10 + 1 (DEX) + 2 (shield)
++			description: "10 + Dex(+1) + shield(+2)",
++		},
++	}
++
++	for _, tt := range tests {
++		t.Run(tt.name, func(t *testing.T) {
++			ac, desc := service.ComputeArmorClass(tt.char)
++			if ac != tt.expectedAC {
++				t.Errorf("ComputeArmorClass() AC = %d; want %d", ac, tt.expectedAC)
++			}
++			if desc != tt.description {
++				t.Errorf("ComputeArmorClass() description = %q; want %q", desc, tt.description)
++			}
++		})
++	}
++}
++
++func TestComputeInitiativeBonus(t *testing.T) {
++	service := NewCharacterService()
++
++	tests := []struct {
++		name     string
++		dex      int
++		expected int
++	}{
++		{"DEX 10", 10, 0},
++		{"DEX 14", 14, 2},
++		{"DEX 18", 18, 4},
++		{"DEX 8", 8, -1},
++		{"DEX 20", 20, 5},
++	}
++
++	for _, tt := range tests {
++		t.Run(tt.name, func(t *testing.T) {
++			char := &entities.Character{Dex: tt.dex}
++			result := service.ComputeInitiativeBonus(char)
++			if result != tt.expected {
++				t.Errorf("ComputeInitiativeBonus() = %d; want %d", result, tt.expected)
++			}
++		})
++	}
++}
++
++func TestComputePassivePerception(t *testing.T) {
++	service := NewCharacterService()
++
++	tests := []struct {
++		name       string
++		wis        int
++		level      int
++		proficient bool
++		expected   int
++	}{
++		{"WIS 10, not proficient", 10, 1, false, 10},
++		{"WIS 14, not proficient", 14, 1, false, 12},
++		{"WIS 14, proficient level 1", 14, 1, true, 14},  // 10 + 2 (WIS) + 2 (prof)
++		{"WIS 18, proficient level 5", 18, 5, true, 17},  // 10 + 4 (WIS) + 3 (prof)
++		{"WIS 20, proficient level 17", 20, 17, true, 21}, // 10 + 5 (WIS) + 6 (prof)
++	}
++
++	for _, tt := range tests {
++		t.Run(tt.name, func(t *testing.T) {
++			char := &entities.Character{
++				Wis:   tt.wis,
++				Level: tt.level,
++			}
++			if tt.proficient {
++				char.SkillProficiencies = []string{"perception"}
++			}
++			
++			result := service.ComputePassivePerception(char)
++			if result != tt.expected {
++				t.Errorf("ComputePassivePerception() = %d; want %d", result, tt.expected)
++			}
++		})
++	}
++}
++
++func TestIsSaveProficient(t *testing.T) {
++	service := NewCharacterService()
++
++	tests := []struct {
++		name     string
++		class    string
++		ability  string
++		expected bool
++	}{
++		// Wizard: Int, Wis
++		{"Wizard INT save", "Wizard", "int", true},
++		{"Wizard WIS save", "Wizard", "wis", true},
++		{"Wizard STR save", "Wizard", "str", false},
++		
++		// Fighter: Str, Con
++		{"Fighter STR save", "Fighter", "str", true},
++		{"Fighter CON save", "Fighter", "con", true},
++		{"Fighter DEX save", "Fighter", "dex", false},
++		
++		// Case insensitive
++		{"Upper case class", "WIZARD", "int", true},
++		{"Full ability name", "Wizard", "intelligence", true},
++		
++		// Unknown class
++		{"Unknown class", "UnknownClass", "str", false},
++	}
++
++	for _, tt := range tests {
++		t.Run(tt.name, func(t *testing.T) {
++			char := &entities.Character{Class: tt.class}
++			result := service.IsSaveProficient(char, tt.ability)
++			if result != tt.expected {
++				t.Errorf("IsSaveProficient(%q, %q) = %v; want %v", tt.class, tt.ability, result, tt.expected)
++			}
++		})
++	}
++}
++
++func TestComputeSkillModifier(t *testing.T) {
++	service := NewCharacterService()
++
++	tests := []struct {
++		name       string
++		skill      string
++		ability    int
++		level      int
++		proficient bool
++		expected   int
++	}{
++		{"Perception (WIS 14), not proficient", "perception", 14, 1, false, 2},
++		{"Perception (WIS 14), proficient", "perception", 14, 1, true, 4}, // 2 (WIS) + 2 (prof)
++		{"Stealth (DEX 18), proficient level 5", "stealth", 18, 5, true, 7}, // 4 (DEX) + 3 (prof)
++		{"Athletics (STR 16), proficient level 9", "athletics", 16, 9, true, 7}, // 3 (STR) + 4 (prof)
++		{"Investigation (INT 20), proficient level 17", "investigation", 20, 17, true, 11}, // 5 (INT) + 6 (prof)
++		{"Unknown skill", "unknown", 14, 1, false, 0},
++	}
++
++	for _, tt := range tests {
++		t.Run(tt.name, func(t *testing.T) {
++			char := &entities.Character{
++				Level: tt.level,
++			}
++			
++			// Set ability score based on skill
++			skillLower := tt.skill
++			switch skillLower {
++			case "perception":
++				char.Wis = tt.ability
++			case "stealth":
++				char.Dex = tt.ability
++			case "athletics":
++				char.Str = tt.ability
++			case "investigation":
++				char.Int = tt.ability
++			}
++			
++			if tt.proficient {
++				char.SkillProficiencies = []string{tt.skill}
++			}
++			
++			result := service.ComputeSkillModifier(char, tt.skill)
++			if result != tt.expected {
++				t.Errorf("ComputeSkillModifier(%q) = %d; want %d", tt.skill, result, tt.expected)
++			}
++		})
++	}
++}
 diff --git a/internal/domain/valueobjects/abilities.go b/internal/domain/valueobjects/abilities.go
 new file mode 100644
 index 0000000..ce1c204
@@ -6982,6 +8182,71 @@ index 0000000..ce1c204
 +		return 3
 +	default:
 +		return 2
++	}
++}
+diff --git a/internal/domain/valueobjects/abilities_test.go b/internal/domain/valueobjects/abilities_test.go
+new file mode 100644
+index 0000000..1691dd6
+--- /dev/null
++++ b/internal/domain/valueobjects/abilities_test.go
+@@ -0,0 +1,59 @@
++package valueobjects
++
++import "testing"
++
++func TestAbilityModifier(t *testing.T) {
++	tests := []struct {
++		name     string
++		score    int
++		expected int
++	}{
++		{"Score 1", 1, -5},
++		{"Score 3", 3, -4},
++		{"Score 8", 8, -1},
++		{"Score 10", 10, 0},
++		{"Score 11", 11, 0},
++		{"Score 12", 12, 1},
++		{"Score 14", 14, 2},
++		{"Score 18", 18, 4},
++		{"Score 20", 20, 5},
++		{"Score 30", 30, 10},
++	}
++
++	for _, tt := range tests {
++		t.Run(tt.name, func(t *testing.T) {
++			result := AbilityModifier(tt.score)
++			if result != tt.expected {
++				t.Errorf("AbilityModifier(%d) = %d; want %d", tt.score, result, tt.expected)
++			}
++		})
++	}
++}
++
++func TestProficiencyBonus(t *testing.T) {
++	tests := []struct {
++		name     string
++		level    int
++		expected int
++	}{
++		{"Level 1", 1, 2},
++		{"Level 4", 4, 2},
++		{"Level 5", 5, 3},
++		{"Level 8", 8, 3},
++		{"Level 9", 9, 4},
++		{"Level 12", 12, 4},
++		{"Level 13", 13, 5},
++		{"Level 16", 16, 5},
++		{"Level 17", 17, 6},
++		{"Level 20", 20, 6},
++	}
++
++	for _, tt := range tests {
++		t.Run(tt.name, func(t *testing.T) {
++			result := ProficiencyBonus(tt.level)
++			if result != tt.expected {
++				t.Errorf("ProficiencyBonus(%d) = %d; want %d", tt.level, result, tt.expected)
++			}
++		})
 +	}
 +}
 diff --git a/internal/domain/valueobjects/armor.go b/internal/domain/valueobjects/armor.go
@@ -7053,6 +8318,394 @@ index 0000000..76e38c9
 +	return ArmorInfo{}, false
 +}
 +
+diff --git a/internal/domain/valueobjects/armor_test.go b/internal/domain/valueobjects/armor_test.go
+new file mode 100644
+index 0000000..4d91ab2
+--- /dev/null
++++ b/internal/domain/valueobjects/armor_test.go
+@@ -0,0 +1,119 @@
++package valueobjects
++
++import "testing"
++
++func TestGetArmorInfoLightArmor(t *testing.T) {
++	tests := []struct {
++		name         string
++		armorName    string
++		expectFound  bool
++		expectedBase int
++		expectedType ArmorType
++	}{
++		{"Leather armor exact", "leather", true, 11, ArmorTypeLight},
++		{"Leather with suffix", "leather armor", true, 11, ArmorTypeLight},
++		{"Studded leather", "studded leather", true, 12, ArmorTypeLight},
++		{"Padded", "padded", true, 11, ArmorTypeLight},
++	}
++
++	for _, tt := range tests {
++		t.Run(tt.name, func(t *testing.T) {
++			info, found := GetArmorInfo(tt.armorName)
++			assertArmorInfo(t, tt.armorName, info, found, tt.expectFound, tt.expectedBase, tt.expectedType)
++		})
++	}
++}
++
++func TestGetArmorInfoMediumArmor(t *testing.T) {
++	tests := []struct {
++		name         string
++		armorName    string
++		expectedBase int
++	}{
++		{"Hide", "hide", 12},
++		{"Chain shirt", "chain shirt", 13},
++		{"Breastplate", "breastplate", 14},
++		{"Half plate", "half plate", 15},
++	}
++
++	for _, tt := range tests {
++		t.Run(tt.name, func(t *testing.T) {
++			info, found := GetArmorInfo(tt.armorName)
++			assertArmorInfo(t, tt.armorName, info, found, true, tt.expectedBase, ArmorTypeMedium)
++		})
++	}
++}
++
++func TestGetArmorInfoHeavyArmor(t *testing.T) {
++	tests := []struct {
++		name         string
++		armorName    string
++		expectedBase int
++	}{
++		{"Chain mail", "chain mail", 16},
++		{"Plate", "plate", 18},
++		{"Splint", "splint", 17},
++	}
++
++	for _, tt := range tests {
++		t.Run(tt.name, func(t *testing.T) {
++			info, found := GetArmorInfo(tt.armorName)
++			assertArmorInfo(t, tt.armorName, info, found, true, tt.expectedBase, ArmorTypeHeavy)
++		})
++	}
++}
++
++func TestGetArmorInfoCaseInsensitive(t *testing.T) {
++	tests := []struct {
++		name      string
++		armorName string
++	}{
++		{"Upper case", "LEATHER"},
++		{"Mixed case", "ChAiN MaIl"},
++		{"With whitespace", "  leather  "},
++	}
++
++	for _, tt := range tests {
++		t.Run(tt.name, func(t *testing.T) {
++			_, found := GetArmorInfo(tt.armorName)
++			if !found {
++				t.Errorf("GetArmorInfo(%q) should find armor", tt.armorName)
++			}
++		})
++	}
++}
++
++func TestGetArmorInfoNotFound(t *testing.T) {
++	tests := []struct {
++		name      string
++		armorName string
++	}{
++		{"Invalid armor", "chainmail bikini"},
++		{"Empty string", ""},
++		{"Random text", "something else"},
++	}
++
++	for _, tt := range tests {
++		t.Run(tt.name, func(t *testing.T) {
++			_, found := GetArmorInfo(tt.armorName)
++			if found {
++				t.Errorf("GetArmorInfo(%q) should not find armor", tt.armorName)
++			}
++		})
++	}
++}
++
++func assertArmorInfo(t *testing.T, armorName string, info ArmorInfo, found bool, expectFound bool, expectedBase int, expectedType ArmorType) {
++	t.Helper()
++	if found != expectFound {
++		t.Errorf("GetArmorInfo(%q) found = %v; want %v", armorName, found, expectFound)
++	}
++	if found {
++		if info.Base != expectedBase {
++			t.Errorf("GetArmorInfo(%q).Base = %d; want %d", armorName, info.Base, expectedBase)
++		}
++		if info.Type != expectedType {
++			t.Errorf("GetArmorInfo(%q).Type = %s; want %s", armorName, info.Type, expectedType)
++		}
++	}
++}
+diff --git a/internal/domain/valueobjects/comprehensive_test.go b/internal/domain/valueobjects/comprehensive_test.go
+new file mode 100644
+index 0000000..831abfa
+--- /dev/null
++++ b/internal/domain/valueobjects/comprehensive_test.go
+@@ -0,0 +1,257 @@
++package valueobjects
++
++import "testing"
++
++func TestAbilityModifierEdgeCases(t *testing.T) {
++	tests := []struct {
++		score    int
++		expected int
++	}{
++		{1, -5},   // Minimum possible
++		{3, -4},
++		{8, -1},
++		{9, -1},
++		{10, 0},   // Average
++		{11, 0},
++		{12, 1},
++		{18, 4},
++		{20, 5},   // Common max
++		{30, 10},  // Legendary
++	}
++
++	for _, tt := range tests {
++		t.Run("", func(t *testing.T) {
++			result := AbilityModifier(tt.score)
++			if result != tt.expected {
++				t.Errorf("AbilityModifier(%d) = %d; want %d", tt.score, result, tt.expected)
++			}
++		})
++	}
++}
++
++func TestProficiencyBonusAllLevels(t *testing.T) {
++	tests := []struct {
++		level    int
++		expected int
++	}{
++		{1, 2},
++		{2, 2},
++		{3, 2},
++		{4, 2},
++		{5, 3},
++		{8, 3},
++		{9, 4},
++		{12, 4},
++		{13, 5},
++		{16, 5},
++		{17, 6},
++		{20, 6},
++	}
++
++	for _, tt := range tests {
++		t.Run("", func(t *testing.T) {
++			result := ProficiencyBonus(tt.level)
++			if result != tt.expected {
++				t.Errorf("ProficiencyBonus(%d) = %d; want %d", tt.level, result, tt.expected)
++			}
++		})
++	}
++}
++
++func TestIsSpellcasterAllClasses(t *testing.T) {
++	spellcasters := []string{"wizard", "cleric", "druid", "bard", "sorcerer", "warlock", "paladin", "ranger"}
++	
++	for _, class := range spellcasters {
++		if !IsSpellcaster(class) {
++			t.Errorf("IsSpellcaster(%q) should be true", class)
++		}
++	}
++}
++
++func TestIsSpellcasterNonCasters(t *testing.T) {
++	nonCasters := []string{"fighter", "barbarian", "rogue", "monk"}
++	
++	for _, class := range nonCasters {
++		if IsSpellcaster(class) {
++			t.Errorf("IsSpellcaster(%q) should be false", class)
++		}
++	}
++}
++
++func TestIsPreparedCasterAllClasses(t *testing.T) {
++	tests := []struct {
++		class    string
++		expected bool
++	}{
++		{"wizard", true},
++		{"cleric", true},
++		{"druid", true},
++		{"paladin", true},
++		{"bard", false},
++		{"sorcerer", false},
++		{"warlock", false},
++		{"ranger", false},
++		{"fighter", false},
++	}
++
++	for _, tt := range tests {
++		t.Run(tt.class, func(t *testing.T) {
++			result := IsPreparedCaster(tt.class)
++			if result != tt.expected {
++				t.Errorf("IsPreparedCaster(%q) = %v; want %v", tt.class, result, tt.expected)
++			}
++		})
++	}
++}
++
++func TestGetArmorInfoAllTypes(t *testing.T) {
++	armors := []struct {
++		name     string
++		shouldExist bool
++	}{
++		{"Leather Armor", true},
++		{"Chain Mail", true},
++		{"Plate Armor", true},
++		{"Studded Leather", true},
++		{"Hide Armor", true},
++		{"Nonexistent Armor", false},
++		{"", false},
++	}
++
++	for _, tt := range armors {
++		t.Run(tt.name, func(t *testing.T) {
++			info, exists := GetArmorInfo(tt.name)
++			if exists != tt.shouldExist {
++				t.Errorf("GetArmorInfo(%q) exists = %v; want %v", tt.name, exists, tt.shouldExist)
++			}
++			if exists && info.Base == 0 {
++				t.Errorf("GetArmorInfo(%q) should have non-zero base AC", tt.name)
++			}
++		})
++	}
++}
++
++func TestAllClassesHaveSavingThrows(t *testing.T) {
++	classes := []string{"barbarian", "bard", "cleric", "druid", "fighter", "monk", "paladin", "ranger", "rogue", "sorcerer", "warlock", "wizard"}
++	
++	for _, class := range classes {
++		saves, exists := ClassSavingThrowProficiencies[class]
++		if !exists {
++			t.Errorf("Class %q missing from ClassSavingThrowProficiencies", class)
++			continue
++		}
++		if len(saves) != 2 {
++			t.Errorf("Class %q should have exactly 2 saving throw proficiencies, got %d", class, len(saves))
++		}
++	}
++}
++
++func TestAllSkillsHaveAbilityMapping(t *testing.T) {
++	requiredSkills := []string{
++		"acrobatics", "animal handling", "arcana", "athletics",
++		"deception", "history", "insight", "intimidation",
++		"investigation", "medicine", "nature", "perception",
++		"performance", "persuasion", "religion", "sleight of hand",
++		"stealth", "survival",
++	}
++
++	for _, skill := range requiredSkills {
++		ability, exists := SkillToAbility[skill]
++		if !exists {
++			t.Errorf("Skill %q missing from SkillToAbility map", skill)
++			continue
++		}
++		validAbilities := []string{"str", "dex", "con", "int", "wis", "cha"}
++		found := false
++		for _, valid := range validAbilities {
++			if ability == valid {
++				found = true
++				break
++			}
++		}
++		if !found {
++			t.Errorf("Skill %q has invalid ability %q", skill, ability)
++		}
++	}
++}
++
++func TestGetSpellSlotsProgression(t *testing.T) {
++	// Test wizard spell slot progression across multiple levels
++	levels := []struct {
++		level        int
++		expectedL1   int
++		expectedL2   int
++		expectedL3   int
++	}{
++		{1, 2, 0, 0},
++		{3, 4, 2, 0},
++		{5, 4, 3, 2},
++		{9, 4, 3, 3},
++	}
++
++	for _, tt := range levels {
++		slots := GetSpellSlots("wizard", tt.level)
++		if slots == nil {
++			t.Fatalf("GetSpellSlots(wizard, %d) returned nil", tt.level)
++		}
++
++		if slots[1] != tt.expectedL1 {
++			t.Errorf("Wizard level %d: expected %d 1st-level slots, got %d", tt.level, tt.expectedL1, slots[1])
++		}
++		if slots[2] != tt.expectedL2 {
++			t.Errorf("Wizard level %d: expected %d 2nd-level slots, got %d", tt.level, tt.expectedL2, slots[2])
++		}
++		if slots[3] != tt.expectedL3 {
++			t.Errorf("Wizard level %d: expected %d 3rd-level slots, got %d", tt.level, tt.expectedL3, slots[3])
++		}
++	}
++}
++
++func TestBackgroundSkillsComplete(t *testing.T) {
++	backgrounds := []string{
++		"acolyte", "charlatan", "criminal", "entertainer",
++		"folk hero", "guild artisan", "hermit", "noble",
++		"outlander", "sage", "sailor", "soldier", "urchin",
++	}
++
++	for _, bg := range backgrounds {
++		skills, exists := BackgroundSkillProficiencies[bg]
++		if !exists {
++			t.Errorf("Background %q missing from BackgroundSkillProficiencies", bg)
++			continue
++		}
++		if len(skills) != 2 {
++			t.Errorf("Background %q should have exactly 2 skill proficiencies, got %d", bg, len(skills))
++		}
++	}
++}
++
++func TestClassSkillChoicesAllClasses(t *testing.T) {
++	classes := []string{"barbarian", "bard", "cleric", "druid", "fighter", "monk", "paladin", "ranger", "rogue", "sorcerer", "warlock", "wizard"}
++	
++	for _, class := range classes {
++		choices, exists := ClassSkillChoices[class]
++		if !exists {
++			t.Errorf("Class %q missing from ClassSkillChoices", class)
++			continue
++		}
++		if choices < 2 || choices > 4 {
++			t.Errorf("Class %q has invalid skill choices: %d (should be 2-4)", class, choices)
++		}
++	}
++}
++
++func TestRacialBonusesCoverage(t *testing.T) {
++	races := []string{"dwarf", "elf", "halfling", "human", "dragonborn", "gnome", "half-elf", "half-orc", "tiefling"}
++	
++	for _, race := range races {
++		bonuses, exists := RacialAbilityBonuses[race]
++		if !exists {
++			t.Errorf("Race %q missing from RacialAbilityBonuses", race)
++			continue
++		}
++		if len(bonuses) == 0 {
++			t.Errorf("Race %q has no ability bonuses", race)
++		}
++	}
++}
 diff --git a/internal/domain/valueobjects/spellcasting.go b/internal/domain/valueobjects/spellcasting.go
 new file mode 100644
 index 0000000..419add3
@@ -7425,6 +9078,216 @@ index 0000000..3c5ead8
 +	slots[slotLevel] = numSlots
 +	
 +	return slots
++}
+diff --git a/internal/domain/valueobjects/srd_data_test.go b/internal/domain/valueobjects/srd_data_test.go
+new file mode 100644
+index 0000000..a6c6163
+--- /dev/null
++++ b/internal/domain/valueobjects/srd_data_test.go
+@@ -0,0 +1,204 @@
++package valueobjects
++
++import "testing"
++
++func TestSkillToAbilityMapping(t *testing.T) {
++	tests := []struct {
++		skill    string
++		expected string
++	}{
++		{"athletics", "str"},
++		{"acrobatics", "dex"},
++		{"stealth", "dex"},
++		{"arcana", "int"},
++		{"history", "int"},
++		{"perception", "wis"},
++		{"insight", "wis"},
++		{"persuasion", "cha"},
++		{"deception", "cha"},
++	}
++
++	for _, tt := range tests {
++		t.Run(tt.skill, func(t *testing.T) {
++			ability, exists := SkillToAbility[tt.skill]
++			if !exists {
++				t.Errorf("Skill %q not found in SkillToAbility map", tt.skill)
++				return
++			}
++			if ability != tt.expected {
++				t.Errorf("SkillToAbility[%q] = %q; want %q", tt.skill, ability, tt.expected)
++			}
++		})
++	}
++}
++
++func TestClassSavingThrowProficiencies(t *testing.T) {
++	tests := []struct {
++		class     string
++		abilities []string
++	}{
++		{"fighter", []string{"str", "con"}},
++		{"wizard", []string{"int", "wis"}},
++		{"cleric", []string{"wis", "cha"}},
++		{"rogue", []string{"dex", "int"}},
++	}
++
++	for _, tt := range tests {
++		t.Run(tt.class, func(t *testing.T) {
++			saves, exists := ClassSavingThrowProficiencies[tt.class]
++			if !exists {
++				t.Errorf("Class %q not found in ClassSavingThrowProficiencies", tt.class)
++				return
++			}
++			if len(saves) != len(tt.abilities) {
++				t.Errorf("Expected %d saving throws, got %d", len(tt.abilities), len(saves))
++				return
++			}
++			for i, ability := range tt.abilities {
++				if saves[i] != ability {
++					t.Errorf("Expected saving throw %d to be %q, got %q", i, ability, saves[i])
++				}
++			}
++		})
++	}
++}
++
++func TestRacialBonuses(t *testing.T) {
++	tests := []struct {
++		race string
++		attr string
++		has  bool
++	}{
++		{"human", "str", true},
++		{"human", "dex", true},
++		{"dwarf", "con", true},
++		{"elf", "dex", true},
++		{"halfling", "dex", true},
++	}
++
++	for _, tt := range tests {
++		t.Run(tt.race+"_"+tt.attr, func(t *testing.T) {
++			bonuses, exists := RacialAbilityBonuses[tt.race]
++			if !exists && tt.has {
++				t.Errorf("Race %q not found in RacialAbilityBonuses", tt.race)
++				return
++			}
++			if exists {
++				_, hasBonus := bonuses[tt.attr]
++				if hasBonus != tt.has {
++					t.Errorf("Race %q should have %q bonus: %v, got: %v", tt.race, tt.attr, tt.has, hasBonus)
++				}
++			}
++		})
++	}
++}
++
++func TestClassAndBackgroundSkillMappings(t *testing.T) {
++	// Class skills - rogue should offer stealth and sleight of hand
++	rogueSkills, ok := ClassSkillProficiencies["rogue"]
++	if !ok {
++		t.Fatal("rogue not present in ClassSkillProficiencies")
++	}
++	foundStealth := false
++	foundSleight := false
++	for _, s := range rogueSkills {
++		if s == "stealth" {
++			foundStealth = true
++		}
++		if s == "sleight of hand" {
++			foundSleight = true
++		}
++	}
++	if !foundStealth {
++		t.Error("rogue skills should include stealth")
++	}
++
++	if !foundSleight {
++		t.Error("rogue skills should include sleight of hand")
++	}
++
++	// Background skills - sage should include arcana and history
++	sageSkills, ok := BackgroundSkillProficiencies["sage"]
++	if !ok {
++		t.Fatal("sage not present in BackgroundSkillProficiencies")
++	}
++	want := map[string]bool{"arcana": false, "history": false}
++	for _, s := range sageSkills {
++		if _, exists := want[s]; exists {
++			want[s] = true
++		}
++	}
++	for k, v := range want {
++		if !v {
++			t.Errorf("background 'sage' should include %s", k)
++		}
++	}
++}
++
++func TestGetSpellSlotsFullCaster(t *testing.T) {
++	// Wizard level 1: should have cantrips and 1st-level slots
++	slots := GetSpellSlots("wizard", 1)
++	if slots == nil {
++		t.Fatal("expected spell slots for wizard level 1")
++	}
++	if slots[0] != 3 { // wizard level1 returns 3 cantrips in this simplified model
++		t.Errorf("wizard level1 cantrips = %d; want 3", slots[0])
++	}
++	if slots[1] != 2 {
++		t.Errorf("wizard level1 1st-level slots = %d; want 2", slots[1])
++	}
++
++	// Bard level 5: check cantrips and spell slots copied from FullCasterSpellSlots
++	slots = GetSpellSlots("bard", 5)
++	if slots == nil {
++		t.Fatal("expected spell slots for bard level 5")
++	}
++	if slots[0] != 3 { // bard at level 5 gets 3 cantrips per getCantripsKnown
++		t.Errorf("bard level5 cantrips = %d; want 3", slots[0])
++	}
++	if slots[3] != 0 && slots[3] < 2 { // ensure higher levels present per table
++		t.Errorf("unexpected bard level5 4th-level slots: %v", slots)
++	}
++}
++
++func TestGetSpellSlotsHalfCaster(t *testing.T) {
++	// Paladin is a half-caster - no cantrips, but should have 1st-level slots at level 2
++	slots := GetSpellSlots("paladin", 2)
++	if slots == nil {
++		t.Fatal("expected spell slots for paladin level 2")
++	}
++	if slots[0] != 0 {
++		t.Errorf("paladin should not have cantrips; got %d", slots[0])
++	}
++	if slots[1] != 2 {
++		t.Errorf("paladin level2 1st-level slots = %d; want 2", slots[1])
++	}
++}
++
++func TestGetSpellSlotsWarlock(t *testing.T) {
++	// Warlock has pact magic: check cantrips and single-level filled
++	slots := GetSpellSlots("warlock", 1)
++	if slots == nil {
++		t.Fatal("expected spell slots for warlock level 1")
++	}
++	if slots[0] != 2 {
++		t.Errorf("warlock level1 cantrips = %d; want 2", slots[0])
++	}
++	// At level 1 warlock has 1 slot at some level; ensure total slots sum > 0
++	sum := 0
++	for _, v := range slots {
++		sum += v
++	}
++	if sum <= 2 { // only cantrips would be 2, so sum must be >2
++		t.Errorf("warlock level1 total slots sum = %d; want >2", sum)
++	}
++}
++
++func TestGetSpellSlotsInvalidLevel(t *testing.T) {
++	if GetSpellSlots("wizard", 0) != nil {
++		t.Error("expected nil for level 0")
++	}
++	if GetSpellSlots("wizard", 21) != nil {
++		t.Error("expected nil for level 21")
++	}
 +}
 diff --git a/internal/infrastructure/di/container.go b/internal/infrastructure/di/container.go
 new file mode 100644
@@ -8234,6 +10097,411 @@ index 0000000..dc024ef
 +	
 +	return 0, fmt.Errorf("spell '%s' not found", spellName)
 +}
+diff --git a/internal/infrastructure/persistence/csv_srd_repository_test.go b/internal/infrastructure/persistence/csv_srd_repository_test.go
+new file mode 100644
+index 0000000..cf50332
+--- /dev/null
++++ b/internal/infrastructure/persistence/csv_srd_repository_test.go
+@@ -0,0 +1,399 @@
++package persistence
++
++import (
++	"os"
++	"path/filepath"
++	"testing"
++)
++
++const (
++	testDataDir       = "../../../assets/srd"
++	spellsCSV         = "5e-SRD-Spells.csv"
++	equipmentCSV      = "5e-SRD-Equipment.csv"
++)
++
++func getTestCSVPaths(t *testing.T) (string, string) {
++	t.Helper()
++	
++	// Get absolute paths to CSV files
++	cwd, err := os.Getwd()
++	if err != nil {
++		t.Fatalf("Failed to get working directory: %v", err)
++	}
++	
++	equipPath := filepath.Join(cwd, testDataDir, equipmentCSV)
++	spellPath := filepath.Join(cwd, testDataDir, spellsCSV)
++	
++	// Verify files exist
++	if _, err := os.Stat(equipPath); err != nil {
++		t.Fatalf("Equipment CSV not found at %s: %v", equipPath, err)
++	}
++	if _, err := os.Stat(spellPath); err != nil {
++		t.Fatalf("Spells CSV not found at %s: %v", spellPath, err)
++	}
++	
++	return equipPath, spellPath
++}
++
++// ========== IsValidSpell Tests ==========
++
++func TestIsValidSpellSuccess(t *testing.T) {
++	equipPath, spellPath := getTestCSVPaths(t)
++	repo := NewCSVSRDRepository(equipPath, spellPath)
++	
++	tests := []struct {
++		name      string
++		spellName string
++	}{
++		{"exact match", "Fireball"},
++		{"lowercase", "fireball"},
++		{"uppercase", "FIREBALL"},
++		{"with spaces", " Fireball "},
++		{"cantrip", "Acid Splash"},
++		{"level 1", "Magic Missile"},
++	}
++	
++	for _, tt := range tests {
++		t.Run(tt.name, func(t *testing.T) {
++			valid := repo.IsValidSpell(tt.spellName)
++			if !valid {
++				t.Errorf("Expected '%s' to be valid spell", tt.spellName)
++			}
++		})
++	}
++}
++
++func TestIsValidSpellNotFound(t *testing.T) {
++	equipPath, spellPath := getTestCSVPaths(t)
++	repo := NewCSVSRDRepository(equipPath, spellPath)
++	
++	tests := []string{
++		"NonExistentSpell",
++		"Super Mega Fireball",
++		"",
++		"   ",
++	}
++	
++	for _, spellName := range tests {
++		t.Run(spellName, func(t *testing.T) {
++			valid := repo.IsValidSpell(spellName)
++			if valid {
++				t.Errorf("Expected '%s' to be invalid spell", spellName)
++			}
++		})
++	}
++}
++
++func TestIsValidSpellFileNotFound(t *testing.T) {
++	repo := NewCSVSRDRepository("/nonexistent/equipment.csv", "/nonexistent/spells.csv")
++	
++	valid := repo.IsValidSpell("Fireball")
++	if valid {
++		t.Error("Expected false when CSV file doesn't exist")
++	}
++}
++
++// ========== IsValidEquipment Tests ==========
++
++func TestIsValidEquipmentSuccess(t *testing.T) {
++	equipPath, spellPath := getTestCSVPaths(t)
++	repo := NewCSVSRDRepository(equipPath, spellPath)
++	
++	tests := []struct {
++		name          string
++		equipmentName string
++	}{
++		{"weapon", "Longsword"},
++		{"lowercase weapon", "longsword"},
++		{"armor", "Chain Mail"},
++		{"armor without suffix", "Leather"},
++		{"armor with suffix", "Leather Armor"},
++		{"shield", "Shield"},
++	}
++	
++	for _, tt := range tests {
++		t.Run(tt.name, func(t *testing.T) {
++			valid := repo.IsValidEquipment(tt.equipmentName)
++			if !valid {
++				t.Errorf("Expected '%s' to be valid equipment", tt.equipmentName)
++			}
++		})
++	}
++}
++
++func TestIsValidEquipmentNotFound(t *testing.T) {
++	equipPath, spellPath := getTestCSVPaths(t)
++	repo := NewCSVSRDRepository(equipPath, spellPath)
++	
++	tests := []string{
++		"NonExistentWeapon",
++		"Super Sword",
++		"",
++		"   ",
++	}
++	
++	for _, equipName := range tests {
++		t.Run(equipName, func(t *testing.T) {
++			valid := repo.IsValidEquipment(equipName)
++			if valid {
++				t.Errorf("Expected '%s' to be invalid equipment", equipName)
++			}
++		})
++	}
++}
++
++func TestIsValidEquipmentFileNotFound(t *testing.T) {
++	repo := NewCSVSRDRepository("/nonexistent/equipment.csv", "/nonexistent/spells.csv")
++	
++	valid := repo.IsValidEquipment("Longsword")
++	if valid {
++		t.Error("Expected false when CSV file doesn't exist")
++	}
++}
++
++// ========== IsSpellForClass Tests ==========
++
++func TestIsSpellForClassSuccess(t *testing.T) {
++	equipPath, spellPath := getTestCSVPaths(t)
++	repo := NewCSVSRDRepository(equipPath, spellPath)
++	
++	tests := []struct {
++		spell     string
++		class     string
++		shouldBe  bool
++	}{
++		{"Fireball", "Wizard", true},
++		{"Fireball", "Sorcerer", true},
++		{"Fireball", "Cleric", false},
++		{"Cure Wounds", "Cleric", true},
++		{"Cure Wounds", "Wizard", false},
++		{"Magic Missile", "Wizard", true},
++		{"magic missile", "wizard", true}, // lowercase
++		{"MAGIC MISSILE", "WIZARD", true}, // uppercase
++	}
++	
++	for _, tt := range tests {
++		t.Run(tt.spell+"_for_"+tt.class, func(t *testing.T) {
++			available, err := repo.IsSpellForClass(tt.spell, tt.class)
++			if err != nil {
++				t.Fatalf("Unexpected error: %v", err)
++			}
++			if available != tt.shouldBe {
++				t.Errorf("Expected '%s' for %s to be %v, got %v", 
++					tt.spell, tt.class, tt.shouldBe, available)
++			}
++		})
++	}
++}
++
++func TestIsSpellForClassNotFound(t *testing.T) {
++	equipPath, spellPath := getTestCSVPaths(t)
++	repo := NewCSVSRDRepository(equipPath, spellPath)
++	
++	available, err := repo.IsSpellForClass("NonExistentSpell", "Wizard")
++	if err != nil {
++		t.Errorf("Expected no error for non-existent spell, got %v", err)
++	}
++	if available {
++		t.Error("Expected false for non-existent spell")
++	}
++}
++
++func TestIsSpellForClassFileError(t *testing.T) {
++	repo := NewCSVSRDRepository("/nonexistent/equipment.csv", "/nonexistent/spells.csv")
++	
++	_, err := repo.IsSpellForClass("Fireball", "Wizard")
++	if err == nil {
++		t.Error("Expected error when CSV file doesn't exist")
++	}
++}
++
++// ========== GetLearnableSpells Tests ==========
++
++func TestGetLearnableSpellsSuccess(t *testing.T) {
++	equipPath, spellPath := getTestCSVPaths(t)
++	repo := NewCSVSRDRepository(equipPath, spellPath)
++	
++	// Wizard with no known spells should get many learnable spells
++	spells, err := repo.GetLearnableSpells("Wizard", []string{})
++	if err != nil {
++		t.Fatalf("Unexpected error: %v", err)
++	}
++	
++	if len(spells) == 0 {
++		t.Error("Expected Wizard to have learnable spells")
++	}
++	
++	// Should include Fireball
++	hasFireball := false
++	for _, s := range spells {
++		if s == "Fireball" {
++			hasFireball = true
++			break
++		}
++	}
++	if !hasFireball {
++		t.Error("Expected Wizard learnable spells to include Fireball")
++	}
++}
++
++func TestGetLearnableSpellsExcludesKnown(t *testing.T) {
++	equipPath, spellPath := getTestCSVPaths(t)
++	repo := NewCSVSRDRepository(equipPath, spellPath)
++	
++	knownSpells := []string{"Fireball", "Magic Missile"}
++	spells, err := repo.GetLearnableSpells("Wizard", knownSpells)
++	if err != nil {
++		t.Fatalf("Unexpected error: %v", err)
++	}
++	
++	// Should not include Fireball or Magic Missile
++	for _, s := range spells {
++		if s == "Fireball" || s == "Magic Missile" {
++			t.Errorf("Learnable spells should not include already known spell: %s", s)
++		}
++	}
++}
++
++func TestGetLearnableSpellsClassSpecific(t *testing.T) {
++	equipPath, spellPath := getTestCSVPaths(t)
++	repo := NewCSVSRDRepository(equipPath, spellPath)
++	
++	// Cleric should not get Wizard-only spells
++	spells, err := repo.GetLearnableSpells("Cleric", []string{})
++	if err != nil {
++		t.Fatalf("Unexpected error: %v", err)
++	}
++	
++	hasFireball := false
++	for _, s := range spells {
++		if s == "Fireball" {
++			hasFireball = true
++			break
++		}
++	}
++	if hasFireball {
++		t.Error("Cleric should not be able to learn Fireball (Wizard/Sorcerer spell)")
++	}
++}
++
++func TestGetLearnableSpellsFileError(t *testing.T) {
++	repo := NewCSVSRDRepository("/nonexistent/equipment.csv", "/nonexistent/spells.csv")
++	
++	_, err := repo.GetLearnableSpells("Wizard", []string{})
++	if err == nil {
++		t.Error("Expected error when CSV file doesn't exist")
++	}
++}
++
++// ========== GetSpellLevel Tests ==========
++
++func TestGetSpellLevelSuccess(t *testing.T) {
++	equipPath, spellPath := getTestCSVPaths(t)
++	repo := NewCSVSRDRepository(equipPath, spellPath)
++	
++	tests := []struct {
++		spell string
++		level int
++	}{
++		{"Acid Splash", 0},      // Cantrip
++		{"Magic Missile", 1},    // Level 1
++		{"Fireball", 3},         // Level 3
++		{"fireball", 3},         // Case insensitive
++		{"FIREBALL", 3},         // Uppercase
++	}
++	
++	for _, tt := range tests {
++		t.Run(tt.spell, func(t *testing.T) {
++			level, err := repo.GetSpellLevel(tt.spell)
++			if err != nil {
++				t.Fatalf("Unexpected error: %v", err)
++			}
++			if level != tt.level {
++				t.Errorf("Expected %s to be level %d, got %d", tt.spell, tt.level, level)
++			}
++		})
++	}
++}
++
++func TestGetSpellLevelNotFound(t *testing.T) {
++	equipPath, spellPath := getTestCSVPaths(t)
++	repo := NewCSVSRDRepository(equipPath, spellPath)
++	
++	_, err := repo.GetSpellLevel("NonExistentSpell")
++	if err == nil {
++		t.Error("Expected error for non-existent spell")
++	}
++}
++
++func TestGetSpellLevelFileError(t *testing.T) {
++	repo := NewCSVSRDRepository("/nonexistent/equipment.csv", "/nonexistent/spells.csv")
++	
++	_, err := repo.GetSpellLevel("Fireball")
++	if err == nil {
++		t.Error("Expected error when CSV file doesn't exist")
++	}
++}
++
++// ========== Helper Function Tests ==========
++
++func TestCanonKey(t *testing.T) {
++	repo := &CSVSRDRepository{}
++	
++	tests := []struct {
++		input    string
++		expected string
++	}{
++		{"Fireball", "fireball"},
++		{"FIREBALL", "fireball"},
++		{" Fireball ", "fireball"},
++		{"Fire  Ball", "fire ball"},
++		{"Magic Missile", "magic missile"},
++		{"Acid'Splash", "acid'splash"},
++		{"Test–Dash", "test-dash"},
++		{"Test/Slash", "test slash"},
++	}
++	
++	for _, tt := range tests {
++		t.Run(tt.input, func(t *testing.T) {
++			result := repo.canonKey(tt.input)
++			if result != tt.expected {
++				t.Errorf("canonKey(%q) = %q, want %q", tt.input, result, tt.expected)
++			}
++		})
++	}
++}
++
++func TestEquipAlternates(t *testing.T) {
++	repo := &CSVSRDRepository{}
++	
++	tests := []struct {
++		input    string
++		mustHave []string
++	}{
++		{"leather", []string{"leather", "leather armor"}},
++		{"chain mail", []string{"chain mail", "chain mail armor"}},
++		{"plate", []string{"plate", "plate armor"}},
++		{"studded leather", []string{"studded leather", "studded leather armor"}},
++	}
++	
++	for _, tt := range tests {
++		t.Run(tt.input, func(t *testing.T) {
++			alternates := repo.equipAlternates(tt.input)
++			
++			for _, mustHave := range tt.mustHave {
++				found := false
++				for _, alt := range alternates {
++					if alt == mustHave {
++						found = true
++						break
++					}
++				}
++				if !found {
++					t.Errorf("equipAlternates(%q) missing %q, got %v", 
++						tt.input, mustHave, alternates)
++				}
++			}
++		})
++	}
++}
 diff --git a/internal/infrastructure/persistence/json_character_repository.go b/internal/infrastructure/persistence/json_character_repository.go
 new file mode 100644
 index 0000000..c272218
@@ -8338,6 +10606,200 @@ index 0000000..c272218
 +
 +func (r *JSONCharacterRepository) getFilePath(name string) string {
 +	return filepath.Join(r.baseDir, fmt.Sprintf("%s.json", name))
++}
+diff --git a/internal/infrastructure/persistence/json_character_repository_test.go b/internal/infrastructure/persistence/json_character_repository_test.go
+new file mode 100644
+index 0000000..ba020f1
+--- /dev/null
++++ b/internal/infrastructure/persistence/json_character_repository_test.go
+@@ -0,0 +1,188 @@
++package persistence
++
++import (
++	"os"
++	"path/filepath"
++	"testing"
++
++	"ddsheetfinal/internal/domain/entities"
++)
++
++const errFailedToSave = "Failed to save character: %v"
++
++func TestJSONRepositorySaveAndFind(t *testing.T) {
++	tmpDir := t.TempDir()
++	repo := NewJSONCharacterRepository(tmpDir)
++
++	char := &entities.Character{
++		Name:  "TestChar",
++		Race:  "Human",
++		Class: "Wizard",
++		Level: 5,
++		Str:   10,
++		Dex:   14,
++		Con:   12,
++		Int:   18,
++		Wis:   14,
++		Cha:   10,
++	}
++
++	err := repo.Save(char)
++	if err != nil {
++		t.Fatalf(errFailedToSave, err)
++	}
++
++	filePath := filepath.Join(tmpDir, "TestChar.json")
++	if _, err := os.Stat(filePath); os.IsNotExist(err) {
++		t.Error("Character file was not created")
++	}
++
++	found, err := repo.FindByName("TestChar")
++	if err != nil {
++		t.Fatalf("Failed to find character: %v", err)
++	}
++
++	assertCharacterMatch(t, found, char)
++}
++
++func TestJSONRepositoryFindNotFound(t *testing.T) {
++	tmpDir := t.TempDir()
++	repo := NewJSONCharacterRepository(tmpDir)
++
++	_, err := repo.FindByName("NonExistent")
++	if err == nil {
++		t.Error("Expected error when finding non-existent character")
++	}
++}
++
++func TestJSONRepositoryDelete(t *testing.T) {
++	tmpDir := t.TempDir()
++	repo := NewJSONCharacterRepository(tmpDir)
++
++	char := &entities.Character{
++		Name:  "ToDelete",
++		Race:  "Elf",
++		Class: "Ranger",
++		Level: 3,
++	}
++
++	err := repo.Save(char)
++	if err != nil {
++		t.Fatalf(errFailedToSave, err)
++	}
++
++	if !repo.Exists("ToDelete") {
++		t.Error("Character should exist before deletion")
++	}
++
++	err = repo.Delete("ToDelete")
++	if err != nil {
++		t.Fatalf("Failed to delete character: %v", err)
++	}
++
++	if repo.Exists("ToDelete") {
++		t.Error("Character should not exist after deletion")
++	}
++}
++
++func TestJSONRepositoryList(t *testing.T) {
++	tmpDir := t.TempDir()
++	repo := NewJSONCharacterRepository(tmpDir)
++
++	chars := []*entities.Character{
++		{Name: "Char1", Race: "Human", Class: "Fighter", Level: 1},
++		{Name: "Char2", Race: "Elf", Class: "Wizard", Level: 2},
++		{Name: "Char3", Race: "Dwarf", Class: "Cleric", Level: 3},
++	}
++
++	for _, char := range chars {
++		err := repo.Save(char)
++		if err != nil {
++			t.Fatalf("Failed to save character %s: %v", char.Name, err)
++		}
++	}
++
++	names, err := repo.List()
++	if err != nil {
++		t.Fatalf("Failed to list characters: %v", err)
++	}
++
++	if len(names) != 3 {
++		t.Errorf("Expected 3 characters, got %d", len(names))
++	}
++}
++
++func TestJSONRepositoryExists(t *testing.T) {
++	tmpDir := t.TempDir()
++	repo := NewJSONCharacterRepository(tmpDir)
++
++	char := &entities.Character{
++		Name:  "ExistsTest",
++		Race:  "Human",
++		Class: "Rogue",
++		Level: 4,
++	}
++
++	if repo.Exists("ExistsTest") {
++		t.Error("Character should not exist before creation")
++	}
++
++	err := repo.Save(char)
++	if err != nil {
++		t.Fatalf(errFailedToSave, err)
++	}
++
++	if !repo.Exists("ExistsTest") {
++		t.Error("Character should exist after creation")
++	}
++}
++
++func TestJSONRepositorySaveOverwrite(t *testing.T) {
++	tmpDir := t.TempDir()
++	repo := NewJSONCharacterRepository(tmpDir)
++
++	char := &entities.Character{
++		Name:  "UpdateTest",
++		Race:  "Human",
++		Class: "Fighter",
++		Level: 1,
++	}
++
++	err := repo.Save(char)
++	if err != nil {
++		t.Fatalf("Failed to save initial character: %v", err)
++	}
++
++	char.Level = 10
++	char.Class = "Paladin"
++
++	err = repo.Save(char)
++	if err != nil {
++		t.Fatalf("Failed to save updated character: %v", err)
++	}
++
++	found, err := repo.FindByName("UpdateTest")
++	if err != nil {
++		t.Fatalf("Failed to find updated character: %v", err)
++	}
++
++	if found.Level != 10 {
++		t.Errorf("Expected level 10, got %d", found.Level)
++	}
++	if found.Class != "Paladin" {
++		t.Errorf("Expected class Paladin, got %s", found.Class)
++	}
++}
++
++func assertCharacterMatch(t *testing.T, found *entities.Character, expected *entities.Character) {
++	t.Helper()
++	if found.Name != expected.Name {
++		t.Errorf("Expected name %s, got %s", expected.Name, found.Name)
++	}
++	if found.Class != expected.Class {
++		t.Errorf("Expected class %s, got %s", expected.Class, found.Class)
++	}
++	if found.Level != expected.Level {
++		t.Errorf("Expected level %d, got %d", expected.Level, found.Level)
++	}
 +}
 diff --git a/internal/presentation/cli/create_handler.go b/internal/presentation/cli/create_handler.go
 new file mode 100644
@@ -8528,10 +10990,10 @@ index 0000000..d1258bb
 +}
 diff --git a/internal/presentation/cli/enrich_handler.go b/internal/presentation/cli/enrich_handler.go
 new file mode 100644
-index 0000000..bd0d626
+index 0000000..5ae32a5
 --- /dev/null
 +++ b/internal/presentation/cli/enrich_handler.go
-@@ -0,0 +1,143 @@
+@@ -0,0 +1,141 @@
 +package cli
 +
 +import (
@@ -8657,23 +11119,303 @@ index 0000000..bd0d626
 +func (h *EnrichHandler) saveEnrichedCharacter(name string, data map[string]interface{}, inplace bool) (string, error) {
 +	pretty, _ := json.MarshalIndent(data, "", "  ")
 +	
++	var outPath string
 +	if inplace {
-+		outPath := filepath.Join("data", "characters", name+".json")
-+		if err := os.WriteFile(outPath, pretty, 0644); err != nil {
-+			return "", fmt.Errorf("write %s: %w", outPath, err)
++		outPath = filepath.Join("data", "characters", name+".json")
++	} else {
++		outDir := filepath.Join("data", "enrichments")
++		if err := os.MkdirAll(outDir, 0755); err != nil {
++			return "", fmt.Errorf("mkdir %s: %w", outDir, err)
 +		}
-+		return outPath, nil
++		outPath = filepath.Join(outDir, name+".json")
 +	}
 +	
-+	outDir := filepath.Join("data", "enrichments")
-+	if err := os.MkdirAll(outDir, 0755); err != nil {
-+		return "", fmt.Errorf("mkdir %s: %w", outDir, err)
-+	}
-+	outPath := filepath.Join(outDir, name+".json")
 +	if err := os.WriteFile(outPath, pretty, 0644); err != nil {
 +		return "", fmt.Errorf("write %s: %w", outPath, err)
 +	}
 +	return outPath, nil
++}
+diff --git a/internal/presentation/cli/enrich_handler_test.go b/internal/presentation/cli/enrich_handler_test.go
+new file mode 100644
+index 0000000..8544da4
+--- /dev/null
++++ b/internal/presentation/cli/enrich_handler_test.go
+@@ -0,0 +1,276 @@
++package cli
++
++import (
++	"encoding/json"
++	"os"
++	"path/filepath"
++	"testing"
++)
++
++const (
++	testCharName          = "TestCharacter"
++	errExpectedNameFormat = "Expected name '%s', got '%s'"
++	errInplaceFalse       = "Expected inplace to be false"
++	errInplaceTrue        = "Expected inplace to be true"
++	errForceFalse         = "Expected force to be false"
++	errForceTrue          = "Expected force to be true"
++	errFetchAllFalse      = "Expected fetchAll to be false"
++	errFetchAllTrue       = "Expected fetchAll to be true"
++	errUnexpected         = "Unexpected error: %v"
++	flagInplace           = "--inplace"
++	flagForce             = "--force"
++	flagFetchAll          = "--fetch-all"
++)
++
++// ========== parseArgs Tests ==========
++// Note: These tests use nil for the use case since parseArgs doesn't use it
++
++func TestParseArgsNameOnly(t *testing.T) {
++	handler := NewEnrichHandler(nil)
++	
++	inplace, force, fetchAll, name := handler.parseArgs([]string{testCharName})
++	
++	if name != testCharName {
++		t.Errorf(errExpectedNameFormat, testCharName, name)
++	}
++	if inplace {
++		t.Error(errInplaceFalse)
++	}
++	if force {
++		t.Error(errForceFalse)
++	}
++	if fetchAll {
++		t.Error(errFetchAllFalse)
++	}
++}
++
++func TestParseArgsWithInplace(t *testing.T) {
++	handler := NewEnrichHandler(nil)
++	
++	// Flags must come before positional arguments in Go's flag package
++	inplace, force, fetchAll, name := handler.parseArgs([]string{flagInplace, testCharName})
++	
++	if name != testCharName {
++		t.Errorf(errExpectedNameFormat, testCharName, name)
++	}
++	if !inplace {
++		t.Error(errInplaceTrue)
++	}
++	if force {
++		t.Error(errForceFalse)
++	}
++	if fetchAll {
++		t.Error(errFetchAllFalse)
++	}
++}
++
++func TestParseArgsWithAllFlags(t *testing.T) {
++	handler := NewEnrichHandler(nil)
++	
++	inplace, force, fetchAll, name := handler.parseArgs([]string{flagInplace, flagForce, flagFetchAll, testCharName})
++	
++	if name != testCharName {
++		t.Errorf(errExpectedNameFormat, testCharName, name)
++	}
++	if !inplace {
++		t.Error(errInplaceTrue)
++	}
++	if !force {
++		t.Error(errForceTrue)
++	}
++	if !fetchAll {
++		t.Error(errFetchAllTrue)
++	}
++}
++
++func TestParseArgsFlagsBeforeName(t *testing.T) {
++	handler := NewEnrichHandler(nil)
++	
++	inplace, force, fetchAll, name := handler.parseArgs([]string{flagInplace, flagForce, testCharName})
++	
++	t.Logf("Parsed: inplace=%v, force=%v, fetchAll=%v, name=%s", inplace, force, fetchAll, name)
++	
++	if name != testCharName {
++		t.Errorf(errExpectedNameFormat, testCharName, name)
++	}
++	if !inplace {
++		t.Error(errInplaceTrue)
++	}
++	if !force {
++		t.Error(errForceTrue)
++	}
++	if fetchAll {
++		t.Error(errFetchAllFalse)
++	}
++}
++
++func TestParseArgsNoName(t *testing.T) {
++	handler := NewEnrichHandler(nil)
++	
++	inplace, force, fetchAll, name := handler.parseArgs([]string{flagFetchAll})
++	
++	if name != "" {
++		t.Errorf("Expected empty name, got '%s'", name)
++	}
++	if inplace {
++		t.Error(errInplaceFalse)
++	}
++	if force {
++		t.Error(errForceFalse)
++	}
++	if !fetchAll {
++		t.Error(errFetchAllTrue)
++	}
++}
++
++func TestParseArgsNameWithSpaces(t *testing.T) {
++	handler := NewEnrichHandler(nil)
++	
++	inplace, force, fetchAll, name := handler.parseArgs([]string{" TestCharacter "})
++	
++	if name != testCharName {
++		t.Errorf("Expected name 'TestCharacter' (trimmed), got '%s'", name)
++	}
++	if inplace {
++		t.Error(errInplaceFalse)
++	}
++	if force {
++		t.Error(errForceFalse)
++	}
++	if fetchAll {
++		t.Error(errFetchAllFalse)
++	}
++}
++
++// ========== saveEnrichedCharacter Tests ==========
++
++func TestSaveEnrichedCharacterInplace(t *testing.T) {
++	handler := NewEnrichHandler(nil)
++	
++	// Create temporary test directory
++	tmpDir := t.TempDir()
++	originalDir, _ := os.Getwd()
++	defer os.Chdir(originalDir)
++	
++	// Change to temp directory
++	os.Chdir(tmpDir)
++	
++	// Create data/characters directory
++	os.MkdirAll(filepath.Join("data", "characters"), 0755)
++	
++	testData := map[string]interface{}{
++		"name":  "TestCharacter",
++		"class": "Wizard",
++		"level": 5,
++	}
++	
++	outPath, err := handler.saveEnrichedCharacter("TestCharacter", testData, true)
++	if err != nil {
++		t.Fatalf(errUnexpected, err)
++	}
++	
++	expectedPath := filepath.Join("data", "characters", "TestCharacter.json")
++	if outPath != expectedPath {
++		t.Errorf("Expected path '%s', got '%s'", expectedPath, outPath)
++	}
++	
++	// Verify file was created
++	if _, err := os.Stat(outPath); os.IsNotExist(err) {
++		t.Error("Expected file to be created")
++	}
++	
++	// Verify content
++	data, err := os.ReadFile(outPath)
++	if err != nil {
++		t.Fatalf("Failed to read file: %v", err)
++	}
++	
++	var result map[string]interface{}
++	if err := json.Unmarshal(data, &result); err != nil {
++		t.Fatalf("Failed to parse JSON: %v", err)
++	}
++	
++	if result["name"] != "TestCharacter" {
++		t.Errorf("Expected name 'TestCharacter', got '%v'", result["name"])
++	}
++}
++
++func TestSaveEnrichedCharacterEnrichmentDir(t *testing.T) {
++	handler := NewEnrichHandler(nil)
++	
++	// Create temporary test directory
++	tmpDir := t.TempDir()
++	originalDir, _ := os.Getwd()
++	defer os.Chdir(originalDir)
++	
++	// Change to temp directory
++	os.Chdir(tmpDir)
++	
++	testData := map[string]interface{}{
++		"name":  "TestCharacter",
++		"class": "Wizard",
++		"level": 5,
++	}
++	
++	outPath, err := handler.saveEnrichedCharacter("TestCharacter", testData, false)
++	if err != nil {
++		t.Fatalf("Unexpected error: %v", err)
++	}
++	
++	expectedPath := filepath.Join("data", "enrichments", "TestCharacter.json")
++	if outPath != expectedPath {
++		t.Errorf("Expected path '%s', got '%s'", expectedPath, outPath)
++	}
++	
++	// Verify file was created
++	if _, err := os.Stat(outPath); os.IsNotExist(err) {
++		t.Error("Expected file to be created")
++	}
++	
++	// Verify content
++	data, err := os.ReadFile(outPath)
++	if err != nil {
++		t.Fatalf("Failed to read file: %v", err)
++	}
++	
++	var result map[string]interface{}
++	if err := json.Unmarshal(data, &result); err != nil {
++		t.Fatalf("Failed to parse JSON: %v", err)
++	}
++	
++	if result["name"] != "TestCharacter" {
++		t.Errorf("Expected name 'TestCharacter', got '%v'", result["name"])
++	}
++}
++
++func TestSaveEnrichedCharacterCreatesDirectory(t *testing.T) {
++	handler := NewEnrichHandler(nil)
++	
++	// Create temporary test directory
++	tmpDir := t.TempDir()
++	originalDir, _ := os.Getwd()
++	defer os.Chdir(originalDir)
++	
++	// Change to temp directory
++	os.Chdir(tmpDir)
++	
++	testData := map[string]interface{}{
++		"name": "TestCharacter",
++	}
++	
++	// enrichments directory doesn't exist yet
++	enrichDir := filepath.Join("data", "enrichments")
++	if _, err := os.Stat(enrichDir); !os.IsNotExist(err) {
++		t.Fatal("enrichments directory should not exist yet")
++	}
++	
++	_, err := handler.saveEnrichedCharacter("TestCharacter", testData, false)
++	if err != nil {
++		t.Fatalf("Unexpected error: %v", err)
++	}
++	
++	// Verify directory was created
++	if _, err := os.Stat(enrichDir); os.IsNotExist(err) {
++		t.Error("Expected enrichments directory to be created")
++	}
 +}
 diff --git a/internal/presentation/cli/equip_handler.go b/internal/presentation/cli/equip_handler.go
 new file mode 100644
@@ -9070,7 +11812,7 @@ index 0000000..b86f49e
 +}
 diff --git a/internal/presentation/cli/serve_handler.go b/internal/presentation/cli/serve_handler.go
 new file mode 100644
-index 0000000..f8f5dad
+index 0000000..3840aaf
 --- /dev/null
 +++ b/internal/presentation/cli/serve_handler.go
 @@ -0,0 +1,397 @@
@@ -9688,76 +12430,27 @@ index 0000000..8174fcf
 +	}
 +}
 diff --git a/main.go b/main.go
-index bd7b538..3b6fb41 100644
+index bd7b538..47ebc83 100644
 --- a/main.go
 +++ b/main.go
-@@ -1,51 +1,57 @@
--package main
--
--import (
--	"fmt"
+@@ -2,11 +2,9 @@ package main
+ 
+ import (
+ 	"fmt"
 -	"net/http"
--	"os"
--
+ 	"os"
+ 
 -	"ddsheetfinal/cmd"
 -	"ddsheetfinal/helpers"
--)
--
--func main() {
--	if len(os.Args) < 2 {
--		fmt.Println("Please provide a command")
--		os.Exit(1)
--	}
--
--	switch os.Args[1] {
--	case "create":
--		cmd.ExecuteCreate(os.Args[2:])
--	case "view":
--		cmd.ExecuteView(os.Args[2:])
--	case "list":
--		cmd.ExecuteList(os.Args[2:])
--	case "delete":
--		cmd.ExecuteDelete(os.Args[2:])
--	case "equip":
--		cmd.ExecuteEquip(os.Args[2:])
--	case "unequip":
--		cmd.ExecuteUnequip(os.Args[2:])
--	case "prepare-spell":
--		cmd.ExecutePrepareSpell(os.Args[2:])
--	case "spell": // alias
--		cmd.ExecutePrepareSpell(os.Args[2:])
--	case "learn-spell":
--		cmd.ExecuteLearnSpell(os.Args[2:])
--	case "learnable-spells":
--		cmd.ExecuteLearnableSpells(os.Args[2:])
--	case "help":
--		cmd.ExecuteHelp(os.Args[2:])
--	case "serve":
--		cmd.ExecuteServe(os.Args[2:])
--	case "enrich":
--		cmd.ExecuteEnrich(os.Args[2:])
--	default:
--		fmt.Println("Unknown command")
--		os.Exit(2)
--	}
--
--	http.HandleFunc("/api/derive", helpers.DeriveHandler)
--}
-+package main
-+
-+import (
-+	"fmt"
-+	"os"
-+
 +	"ddsheetfinal/internal/infrastructure/di"
-+)
-+
-+func main() {
-+	if len(os.Args) < 2 {
-+		fmt.Println("Please provide a command")
-+		os.Exit(1)
-+	}
-+
+ )
+ 
+ func main() {
+@@ -15,37 +13,45 @@ func main() {
+ 		os.Exit(1)
+ 	}
+ 
+-	switch os.Args[1] {
 +	// Initialize the dependency injection container
 +	container := di.NewContainer(
 +		"data/characters",           // characters directory
@@ -9771,44 +12464,61 @@ index bd7b538..3b6fb41 100644
 +	args := os.Args[2:]
 +
 +	switch command {
-+	case "create":
+ 	case "create":
+-		cmd.ExecuteCreate(os.Args[2:])
 +		container.CreateHandler.Handle(args)
-+	case "view":
+ 	case "view":
+-		cmd.ExecuteView(os.Args[2:])
 +		container.ViewHandler.Handle(args)
-+	case "list":
+ 	case "list":
+-		cmd.ExecuteList(os.Args[2:])
 +		container.ListHandler.Handle(args)
-+	case "delete":
+ 	case "delete":
+-		cmd.ExecuteDelete(os.Args[2:])
 +		container.DeleteHandler.Handle(args)
-+	case "equip":
+ 	case "equip":
+-		cmd.ExecuteEquip(os.Args[2:])
 +		container.EquipHandler.Handle(args)
-+	case "unequip":
+ 	case "unequip":
+-		cmd.ExecuteUnequip(os.Args[2:])
+-	case "prepare-spell":
+-		cmd.ExecutePrepareSpell(os.Args[2:])
+-	case "spell": // alias
+-		cmd.ExecutePrepareSpell(os.Args[2:])
 +		container.UnequipHandler.Handle(args)
 +	case "prepare-spell", "spell":
 +		container.PrepareSpellHandler.Handle(args)
-+	case "learn-spell":
+ 	case "learn-spell":
+-		cmd.ExecuteLearnSpell(os.Args[2:])
 +		container.LearnSpellHandler.Handle(args)
-+	case "learnable-spells":
+ 	case "learnable-spells":
+-		cmd.ExecuteLearnableSpells(os.Args[2:])
 +		container.LearnableSpellsHandler.Handle(args)
-+	case "help":
+ 	case "help":
+-		cmd.ExecuteHelp(os.Args[2:])
 +		container.HelpHandler.Handle(args)
-+	case "serve":
+ 	case "serve":
+-		cmd.ExecuteServe(os.Args[2:])
 +		container.ServeHandler.Handle(args)
-+	case "enrich":
+ 	case "enrich":
+-		cmd.ExecuteEnrich(os.Args[2:])
 +		container.EnrichHandler.Handle(args)
-+	default:
-+		fmt.Println("Unknown command")
-+		os.Exit(2)
-+	}
-+}
+ 	default:
+ 		fmt.Println("Unknown command")
+ 		os.Exit(2)
+ 	}
+-
+-	http.HandleFunc("/api/derive", helpers.DeriveHandler)
+ }
 diff --git a/run-sonar.sh b/run-sonar.sh
-new file mode 100755
-index 0000000..163e9ea
+new file mode 100644
+index 0000000..b82374e
 --- /dev/null
 +++ b/run-sonar.sh
-@@ -0,0 +1,20 @@
+@@ -0,0 +1,31 @@
 +#!/bin/bash
 +# SonarQube Analysis Runner
-+# This script runs SonarQube analysis with the token from .env file
++# This script runs tests with coverage, then runs SonarQube analysis
 +
 +# Load token from .env file if it exists
 +if [ -f .env ]; then
@@ -9822,15 +12532,26 @@ index 0000000..163e9ea
 +  exit 1
 +fi
 +
++# Run tests with coverage first
++echo "Running tests with coverage..."
++mkdir -p coverage
++go test ./... -coverprofile=coverage/coverage.out -covermode=count
++
++echo ""
++echo "Coverage Summary:"
++go tool cover -func=coverage/coverage.out | grep total:
++
++echo ""
++echo "Running SonarQube analysis..."
 +docker run --rm --link sonarqube \
 +  -v "$(pwd):/usr/src" \
 +  sonarsource/sonar-scanner-cli \
 +  -Dsonar.token="${SONAR_TOKEN}"
 diff --git a/sonar-project.properties b/sonar-project.properties
-index fa8fe95..e31995e 100644
+index fa8fe95..5348ca5 100644
 --- a/sonar-project.properties
 +++ b/sonar-project.properties
-@@ -1,6 +1,7 @@
+@@ -1,12 +1,16 @@
  sonar.host.url=http://sonarqube:9000
 -    sonar.projectKey=DDSheetFinal
 -    sonar.token=sqp_e636e910d8fba89ef6168bb78cb91103fd0b4308
@@ -9840,845 +12561,74 @@ index fa8fe95..e31995e 100644
      
      sonar.sources=.
          # Exclude test files and common editor/build/cache folders that are not part of
+         # the project's source code. This prevents Sonar from flagging JSON-based
+         # deep-clone patterns inside editor extensions, VS Code caches, or node_modules.
+-        sonar.exclusions=**/*_test.go,**/node_modules/**,**/.vscode/**,**/.vscode-server/**,**/.git/**,**/bin/**,**/out/**,**/.history/**,**/dist/**
++        sonar.exclusions=**/*_test.go,**/node_modules/**,**/.vscode/**,**/.vscode-server/**,**/.git/**,**/bin/**,**/out/**,**/.history/**,**/dist/**,**/coverage/**
+     
+     sonar.tests=.
+-    sonar.test.inclusions=**/*_test.go
+\ No newline at end of file
++    sonar.test.inclusions=**/*_test.go
++    
++    # Go test coverage
++    sonar.go.coverage.reportPaths=coverage/coverage.out
+\ No newline at end of file
 diff --git a/frontend/charactersheet.html b/web/static/charactersheet.html
-similarity index 96%
+similarity index 99%
 rename from frontend/charactersheet.html
 rename to web/static/charactersheet.html
-index a9f971c..141fbb9 100644
+index a9f971c..038098a 100644
 --- a/frontend/charactersheet.html
 +++ b/web/static/charactersheet.html
-@@ -1,384 +1,384 @@
--  <!DOCTYPE html>
--  <html lang="en">
--  <head>
--      <meta charset="UTF-8">
--      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+@@ -3,8 +3,8 @@
+   <head>
+       <meta charset="UTF-8">
+       <meta name="viewport" content="width=device-width, initial-scale=1.0">
 -      <link rel="stylesheet" href="normalize.css">
 -      <link rel="stylesheet" href="style.css">
--      <title>MPP Character Sheet</title>
--  </head>
--  <body>
--      <form class="charsheet">
--    <header>
--      <section class="charname">
--        <label for="charname">Character Name</label><input name="charname" placeholder="Thoradin Fireforge" />
--      </section>
--      <section class="misc">
--        <ul>
--          <li>
--            <label for="classlevel">Class & Level</label><input name="classlevel" placeholder="Paladin 2" />
--          </li>
--          <li>
--            <label for="background">Background</label><input name="background" placeholder="Acolyte" />
--          </li>
--          <li>
--            <label for="playername">Player Name</label><input name="playername" placeholder="Player McPlayerface">
--          </li>
--          <li>
--            <label for="race">Race</label><input name="race" placeholder="Half-elf" />
--          </li>
--          <li>
--            <label for="alignment">Alignment</label><input name="alignment" placeholder="Lawful Good" />
--          </li>
--          <li>
--            <label for="experiencepoints">Experience Points</label><input name="experiencepoints" placeholder="3240" />
--          </li>
--        </ul>
--      </section>
--
--      <!-- Back button -->
--      <nav class="sheet-nav" style="margin-top:8px">
--        <a href="index.html" class="back">← Back to list</a>
--      </nav>
--    </header>
--    <main>
--      <section>
--        <section class="attributes">
--          <div class="scores">
--            <ul>
--              <li>
--                <div class="score">
--                  <label for="Strengthscore">Strength</label><input name="Strengthscore" placeholder="10" class="stat"/>
--                </div>
--                <div class="modifier">
--                  <input name="Strengthmod" placeholder="+0" class="statmod"/>
--                </div>
--              </li>
--              <li>
--                <div class="score">
--                  <label for="Dexterityscore">Dexterity</label><input name="Dexterityscore" placeholder="10" class="stat"/>
--                </div>
--                <div class="modifier">
--                  <input name="Dexteritymod" placeholder="+0" class=statmod/>
--                </div>
--              </li>
--              <li>
--                <div class="score">
--                  <label for="Constitutionscore">Constitution</label><input name="Constitutionscore" placeholder="10" class="stat"/>
--                </div>
--                <div class="modifier">
--                  <input name="Constitutionmod" placeholder="+0" class="statmod"/>
--                </div>
--              </li>
--              <li>
--                <div class="score">
--                  <label for="Wisdomscore">Wisdom</label><input name="Wisdomscore" placeholder="10" class="stat"/>
--                </div>
--                <div class="modifier">
--                  <input name="Wisdommod" placeholder="+0" />
--                </div>
--              </li>
--              <li>
--                <div class="score">
--                  <label for="Intelligencescore">Intelligence</label><input name="Intelligencescore" placeholder="10" class="stat"/>
--                </div>
--                <div class="modifier">
--                  <input name="Intelligencemod" placeholder="+0" class="statmod"/>
--                </div>
--              </li>
--              <li>
--                <div class="score">
--                  <label for="Charismascore">Charisma</label><input name="Charismascore" placeholder="10" class="stat"/>
--                </div>
--                <div class="modifier">
--                  <input name="Charismamod" placeholder="+0" class="statmod"/>
--                </div>
--              </li>
--            </ul>
--          </div>
--          <div class="attr-applications">
--            <div class="inspiration box">
--              <div class="label-container">
--                <label for="inspiration">Inspiration</label>
--              </div>
--              <input name="inspiration" type="checkbox" />
--            </div>
--            <div class="proficiencybonus box">
--              <div class="label-container">
--                <label for="proficiencybonus">Proficiency Bonus</label>
--              </div>
--              <input name="proficiencybonus" placeholder="+2" />
--            </div>
--            <div class="saves list-section box">
--              <ul>
--                <li>
--                  <label for="Strength-save">Strength</label><input name="Strength-save" placeholder="+0" type="text" /><input name="Strength-save-prof" type="checkbox" />
--                </li>
--                <li>
--                  <label for="Dexterity-save">Dexterity</label><input name="Dexterity-save" placeholder="+0" type="text" /><input name="Dexterity-save-prof" type="checkbox" />
--                </li>
--                <li>
--                  <label for="Constitution-save">Constitution</label><input name="Constitution-save" placeholder="+0" type="text" /><input name="Constitution-save-prof" type="checkbox" />
--                </li>
--                <li>
--                  <label for="Wisdom-save">Wisdom</label><input name="Wisdom-save" placeholder="+0" type="text" /><input name="Wisdom-save-prof" type="checkbox" />
--                </li>
--                <li>
--                  <label for="Intelligence-save">Intelligence</label><input name="Intelligence-save" placeholder="+0" type="text" /><input name="Intelligence-save-prof" type="checkbox" />
--                </li>
--                <li>
--                  <label for="Charisma-save">Charisma</label><input name="Charisma-save" placeholder="+0" type="text" /><input name="Charisma-save-prof" type="checkbox" />
--                </li>
--              </ul>
--              <div class="label">
--                Saving Throws
--              </div>
--            </div>
--            <div class="skills list-section box">
--              <ul>
--                <li>
--                  <label for="Acrobatics">Acrobatics <span class="skill">(Dex)</span></label><input name="Acrobatics" placeholder="+0" type="text" /><input name="Acrobatics-prof" type="checkbox" />
--                </li>
--                <li>
--                  <label for="Animal Handling">Animal Handling <span class="skill">(Wis)</span></label><input name="Animal Handling" placeholder="+0" type="text" /><input name="Animal Handling-prof" type="checkbox" />
--                </li>
--                <li>
--                  <label for="Arcana">Arcana <span class="skill">(Int)</span></label><input name="Arcana" placeholder="+0" type="text" /><input name="Arcana-prof" type="checkbox" />
--                </li>
--                <li>
--                  <label for="Athletics">Athletics <span class="skill">(Str)</span></label><input name="Athletics" placeholder="+0" type="text" /><input name="Athletics-prof" type="checkbox" />
--                </li>
--                <li>
--                  <label for="Deception">Deception <span class="skill">(Cha)</span></label><input name="Deception" placeholder="+0" type="text" /><input name="Deception-prof" type="checkbox" />
--                </li>
--                <li>
--                  <label for="History">History <span class="skill">(Int)</span></label><input name="History" placeholder="+0" type="text" /><input name="History-prof" type="checkbox" />
--                </li>
--                <li>
--                  <label for="Insight">Insight <span class="skill">(Wis)</span></label><input name="Insight" placeholder="+0" type="text" /><input name="Insight-prof" type="checkbox" />
--                </li>
--                <li>
--                  <label for="Intimidation">Intimidation <span class="skill">(Cha)</span></label><input name="Intimidation" placeholder="+0" type="text" /><input name="Intimidation-prof" type="checkbox" />
--                </li>
--                <li>
--                  <label for="Investigation">Investigation <span class="skill">(Int)</span></label><input name="Investigation" placeholder="+0" type="text" /><input name="Investigation-prof" type="checkbox" />
--                </li>
--                <li>
--                  <label for="Medicine">Medicine <span class="skill">(Wis)</span></label><input name="Medicine" placeholder="+0" type="text" /><input name="Medicine-prof" type="checkbox" />
--                </li>
--                <li>
--                  <label for="Nature">Nature <span class="skill">(Int)</span></label><input name="Nature" placeholder="+0" type="text" /><input name="Nature-prof" type="checkbox" />
--                </li>
--                <li>
--                  <label for="Perception">Perception <span class="skill">(Wis)</span></label><input name="Perception" placeholder="+0" type="text" /><input name="Perception-prof" type="checkbox" />
--                </li>
--                <li>
--                  <label for="Performance">Performance <span class="skill">(Cha)</span></label><input name="Performance" placeholder="+0" type="text" /><input name="Performance-prof" type="checkbox" />
--                </li>
--                <li>
--                  <label for="Persuasion">Persuasion <span class="skill">(Cha)</span></label><input name="Persuasion" placeholder="+0" type="text" /><input name="Persuasion-prof" type="checkbox" />
--                </li>
--                <li>
--                  <label for="Religion">Religion <span class="skill">(Int)</span></label><input name="Religion" placeholder="+0" type="text" /><input name="Religion-prof" type="checkbox" />
--                </li>
--                <li>
--                  <label for="Sleight of Hand">Sleight of Hand <span class="skill">(Dex)</span></label><input name="Sleight of Hand" placeholder="+0" type="text" /><input name="Sleight of Hand-prof" type="checkbox" />
--                </li>
--                <li>
--                  <label for="Stealth">Stealth <span class="skill">(Dex)</span></label><input name="Stealth" placeholder="+0" type="text" /><input name="Stealth-prof" type="checkbox" />
--                </li>
--                <li>
--                  <label for="Survival">Survival <span class="skill">(Wis)</span></label><input name="Survival" placeholder="+0" type="text" /><input name="Survival-prof" type="checkbox" />
--                </li>
--              </ul>
--              <div class="label">
--                Skills
--              </div>
--            </div>
--          </div>
--        </section>
--        <div class="passive-perception box">
--          <div class="label-container">
--            <label for="passiveperception">Passive Wisdom (Perception)</label>
--          </div>
--          <input name="passiveperception" placeholder="10" />
--        </div>
--        <div class="otherprofs box textblock">
--          <label for="otherprofs">Other Proficiencies and Languages</label><textarea name="otherprofs"></textarea>
--        </div>
--      </section>
--      <section>
--        <section class="combat">
--          <div class="armorclass">
--            <div>
--              <label for="ac">Armor Class</label><input name="ac" placeholder="10" type="text" />
--            </div>
--          </div>
--          <div class="initiative">
--            <div>
--              <label for="initiative">Initiative</label><input name="initiative" placeholder="+0" type="text" />
--            </div>
--          </div>
--          <div class="speed">
--            <div>
--              <label for="speed">Speed</label><input name="speed" placeholder="30" type="text" />
--            </div>
--          </div>
--          <div class="hp">
--            <div class="regular">
--              <div class="max">
--                <label for="maxhp">Hit Point Maximum</label><input name="maxhp" placeholder="10" type="text" />
--              </div>
--              <div class="current">
--                <label for="currenthp">Current Hit Points</label><input name="currenthp" type="text" />
--              </div>
--            </div>
--            <div class="temporary">
--              <label for="temphp">Temporary Hit Points</label><input name="temphp" type="text" />
--            </div>
--          </div>
--          <div class="hitdice">
--            <div>
--              <div class="total">
--                <label for="totalhd">Total</label><input name="totalhd" placeholder="2d10" type="text" onclick="totalhd_clicked()" />
--              </div>
--              <div class="remaining">
--                <label for="remaininghd">Hit Dice</label><input name="remaininghd" type="text" />
--              </div>
--            </div>
--          </div>
--          <div class="deathsaves">
--            <div>
--              <div class="label">
--                <label for="deathsuccess1">Death Saves</label>
--              </div>
--              <div class="marks">
--                <div class="deathsuccesses">
--                  <label for="deathsuccess1">Successes</label>
--                  <div class="bubbles">
--                    <input name="deathsuccess1" type="checkbox" />
--                    <input name="deathsuccess2" type="checkbox" />
--                    <input name="deathsuccess3" type="checkbox" />
--                  </div>
--                </div>
--                <div class="deathfails">
--                  <label for="deathfail1">Failures</label>
--                  <div class="bubbles">
--                    <input id="deathfail1" name="deathfail1" type="checkbox" />
--                    <input name="deathfail2" type="checkbox" />
--                    <input name="deathfail3" type="checkbox" />
--                  </div>
--                </div>
--              </div>
--            </div>
--          </div>
--        </section>
--        <section class="attacksandspellcasting">
--          <div>
--            <label for="spellsarea">Attacks & Spellcasting</label>
--            <table>
--              <thead>
--                <tr>
--                  <th>
--                    Name
--                  </th>
--                  <th>
--                    Atk Bonus
--                  </th>
--                  <th>
--                    Damage/Type
--                  </th>
--                </tr>
--              </thead>
--              <tbody>
--                <tr>
--                  <td>
--                    <input name="atkname1" type="text" />
--                  </td>
--                  <td>
--                    <input name="atkbonus1" type="text" />
--                  </td>
--                  <td>
--                    <input name="atkdamage1" type="text" />
--                  </td>
--                </tr>
--                <tr>
--                  <td>
--                    <input name="atkname2" type="text" />
--                  </td>
--                  <td>
--                    <input name="atkbonus2" type="text" />
--                  </td>
--                  <td>
--                    <input name="atkdamage2" type="text" />
--                  </td>
--                </tr>
--                <tr>
--                  <td>
--                    <input name="atkname3" type="text" />
--                  </td>
--                  <td>
--                    <input name="atkbonus3" type="text" />
--                  </td>
--                  <td>
--                    <input name="atkdamage3" type="text" />
--                  </td>
--                </tr>
--              </tbody>
--            </table>
--            <textarea name="spellsarea" placeholder="Spells or spell notes go here"></textarea>
--          </div>
--        </section>
--        <section class="equipment">
--          <div>
--            <label for="equipment">Equipment</label>
--            <div class="money">
--              <ul>
--                <li>
--                  <label for="cp">cp</label><input name="cp" />
--                </li>
--                <li>
--                  <label for="sp">sp</label><input name="sp" />
--                </li>
--                <li>
--                  <label for="ep">ep</label><input name="ep" />
--                </li>
--                <li>
--                  <label for="gp">gp</label><input name="gp" />
--                </li>
--                <li>
--                  <label for="pp">pp</label><input name="pp" />
--                </li>
--              </ul>
--            </div>
--            <textarea id="equipment" name="equipment" placeholder="Equipment list here"></textarea>
--          </div>
--        </section>
--      </section>
--      <section>
--        <section class="flavor">
--          <div class="personality">
--            <label for="personality">Personality</label><textarea name="personality"></textarea>
--          </div>
--          <div class="ideals">
--            <label for="ideals">Ideals</label><textarea name="ideals"></textarea>
--          </div>
--          <div class="bonds">
--            <label for="bonds">Bonds</label><textarea name="bonds"></textarea>
--          </div>
--          <div class="flaws">
--            <label for="flaws">Flaws</label><textarea name="flaws"></textarea>
--          </div>
--        </section>
--        <section class="features">
--          <div>
--            <label for="features">Features & Traits</label><textarea name="features"></textarea>
--          </div>
--        </section>
--      </section>
--    </main>
--  </form>
--
--  <script src="charactersheet.js?v=20251020-1"></script>
--  </body>
--  </html>
-+  <!DOCTYPE html>
-+  <html lang="en">
-+  <head>
-+      <meta charset="UTF-8">
-+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
 +      <link rel="stylesheet" href="css/normalize.css">
 +      <link rel="stylesheet" href="css/style.css">
-+      <title>MPP Character Sheet</title>
-+  </head>
-+  <body>
-+      <form class="charsheet">
-+    <header>
-+      <section class="charname">
-+        <label for="charname">Character Name</label><input name="charname" placeholder="Thoradin Fireforge" />
-+      </section>
-+      <section class="misc">
-+        <ul>
-+          <li>
-+            <label for="classlevel">Class & Level</label><input name="classlevel" placeholder="Paladin 2" />
-+          </li>
-+          <li>
-+            <label for="background">Background</label><input name="background" placeholder="Acolyte" />
-+          </li>
-+          <li>
-+            <label for="playername">Player Name</label><input name="playername" placeholder="Player McPlayerface">
-+          </li>
-+          <li>
-+            <label for="race">Race</label><input name="race" placeholder="Half-elf" />
-+          </li>
-+          <li>
-+            <label for="alignment">Alignment</label><input name="alignment" placeholder="Lawful Good" />
-+          </li>
-+          <li>
-+            <label for="experiencepoints">Experience Points</label><input name="experiencepoints" placeholder="3240" />
-+          </li>
-+        </ul>
-+      </section>
-+
-+      <!-- Back button -->
-+      <nav class="sheet-nav" style="margin-top:8px">
-+        <a href="index.html" class="back">← Back to list</a>
-+      </nav>
-+    </header>
-+    <main>
-+      <section>
-+        <section class="attributes">
-+          <div class="scores">
-+            <ul>
-+              <li>
-+                <div class="score">
-+                  <label for="Strengthscore">Strength</label><input name="Strengthscore" placeholder="10" class="stat"/>
-+                </div>
-+                <div class="modifier">
-+                  <input name="Strengthmod" placeholder="+0" class="statmod"/>
-+                </div>
-+              </li>
-+              <li>
-+                <div class="score">
-+                  <label for="Dexterityscore">Dexterity</label><input name="Dexterityscore" placeholder="10" class="stat"/>
-+                </div>
-+                <div class="modifier">
-+                  <input name="Dexteritymod" placeholder="+0" class=statmod/>
-+                </div>
-+              </li>
-+              <li>
-+                <div class="score">
-+                  <label for="Constitutionscore">Constitution</label><input name="Constitutionscore" placeholder="10" class="stat"/>
-+                </div>
-+                <div class="modifier">
-+                  <input name="Constitutionmod" placeholder="+0" class="statmod"/>
-+                </div>
-+              </li>
-+              <li>
-+                <div class="score">
-+                  <label for="Wisdomscore">Wisdom</label><input name="Wisdomscore" placeholder="10" class="stat"/>
-+                </div>
-+                <div class="modifier">
-+                  <input name="Wisdommod" placeholder="+0" />
-+                </div>
-+              </li>
-+              <li>
-+                <div class="score">
-+                  <label for="Intelligencescore">Intelligence</label><input name="Intelligencescore" placeholder="10" class="stat"/>
-+                </div>
-+                <div class="modifier">
-+                  <input name="Intelligencemod" placeholder="+0" class="statmod"/>
-+                </div>
-+              </li>
-+              <li>
-+                <div class="score">
-+                  <label for="Charismascore">Charisma</label><input name="Charismascore" placeholder="10" class="stat"/>
-+                </div>
-+                <div class="modifier">
-+                  <input name="Charismamod" placeholder="+0" class="statmod"/>
-+                </div>
-+              </li>
-+            </ul>
-+          </div>
-+          <div class="attr-applications">
-+            <div class="inspiration box">
-+              <div class="label-container">
-+                <label for="inspiration">Inspiration</label>
-+              </div>
-+              <input name="inspiration" type="checkbox" />
-+            </div>
-+            <div class="proficiencybonus box">
-+              <div class="label-container">
-+                <label for="proficiencybonus">Proficiency Bonus</label>
-+              </div>
-+              <input name="proficiencybonus" placeholder="+2" />
-+            </div>
-+            <div class="saves list-section box">
-+              <ul>
-+                <li>
-+                  <label for="Strength-save">Strength</label><input name="Strength-save" placeholder="+0" type="text" /><input name="Strength-save-prof" type="checkbox" />
-+                </li>
-+                <li>
-+                  <label for="Dexterity-save">Dexterity</label><input name="Dexterity-save" placeholder="+0" type="text" /><input name="Dexterity-save-prof" type="checkbox" />
-+                </li>
-+                <li>
-+                  <label for="Constitution-save">Constitution</label><input name="Constitution-save" placeholder="+0" type="text" /><input name="Constitution-save-prof" type="checkbox" />
-+                </li>
-+                <li>
-+                  <label for="Wisdom-save">Wisdom</label><input name="Wisdom-save" placeholder="+0" type="text" /><input name="Wisdom-save-prof" type="checkbox" />
-+                </li>
-+                <li>
-+                  <label for="Intelligence-save">Intelligence</label><input name="Intelligence-save" placeholder="+0" type="text" /><input name="Intelligence-save-prof" type="checkbox" />
-+                </li>
-+                <li>
-+                  <label for="Charisma-save">Charisma</label><input name="Charisma-save" placeholder="+0" type="text" /><input name="Charisma-save-prof" type="checkbox" />
-+                </li>
-+              </ul>
-+              <div class="label">
-+                Saving Throws
-+              </div>
-+            </div>
-+            <div class="skills list-section box">
-+              <ul>
-+                <li>
-+                  <label for="Acrobatics">Acrobatics <span class="skill">(Dex)</span></label><input name="Acrobatics" placeholder="+0" type="text" /><input name="Acrobatics-prof" type="checkbox" />
-+                </li>
-+                <li>
-+                  <label for="Animal Handling">Animal Handling <span class="skill">(Wis)</span></label><input name="Animal Handling" placeholder="+0" type="text" /><input name="Animal Handling-prof" type="checkbox" />
-+                </li>
-+                <li>
-+                  <label for="Arcana">Arcana <span class="skill">(Int)</span></label><input name="Arcana" placeholder="+0" type="text" /><input name="Arcana-prof" type="checkbox" />
-+                </li>
-+                <li>
-+                  <label for="Athletics">Athletics <span class="skill">(Str)</span></label><input name="Athletics" placeholder="+0" type="text" /><input name="Athletics-prof" type="checkbox" />
-+                </li>
-+                <li>
-+                  <label for="Deception">Deception <span class="skill">(Cha)</span></label><input name="Deception" placeholder="+0" type="text" /><input name="Deception-prof" type="checkbox" />
-+                </li>
-+                <li>
-+                  <label for="History">History <span class="skill">(Int)</span></label><input name="History" placeholder="+0" type="text" /><input name="History-prof" type="checkbox" />
-+                </li>
-+                <li>
-+                  <label for="Insight">Insight <span class="skill">(Wis)</span></label><input name="Insight" placeholder="+0" type="text" /><input name="Insight-prof" type="checkbox" />
-+                </li>
-+                <li>
-+                  <label for="Intimidation">Intimidation <span class="skill">(Cha)</span></label><input name="Intimidation" placeholder="+0" type="text" /><input name="Intimidation-prof" type="checkbox" />
-+                </li>
-+                <li>
-+                  <label for="Investigation">Investigation <span class="skill">(Int)</span></label><input name="Investigation" placeholder="+0" type="text" /><input name="Investigation-prof" type="checkbox" />
-+                </li>
-+                <li>
-+                  <label for="Medicine">Medicine <span class="skill">(Wis)</span></label><input name="Medicine" placeholder="+0" type="text" /><input name="Medicine-prof" type="checkbox" />
-+                </li>
-+                <li>
-+                  <label for="Nature">Nature <span class="skill">(Int)</span></label><input name="Nature" placeholder="+0" type="text" /><input name="Nature-prof" type="checkbox" />
-+                </li>
-+                <li>
-+                  <label for="Perception">Perception <span class="skill">(Wis)</span></label><input name="Perception" placeholder="+0" type="text" /><input name="Perception-prof" type="checkbox" />
-+                </li>
-+                <li>
-+                  <label for="Performance">Performance <span class="skill">(Cha)</span></label><input name="Performance" placeholder="+0" type="text" /><input name="Performance-prof" type="checkbox" />
-+                </li>
-+                <li>
-+                  <label for="Persuasion">Persuasion <span class="skill">(Cha)</span></label><input name="Persuasion" placeholder="+0" type="text" /><input name="Persuasion-prof" type="checkbox" />
-+                </li>
-+                <li>
-+                  <label for="Religion">Religion <span class="skill">(Int)</span></label><input name="Religion" placeholder="+0" type="text" /><input name="Religion-prof" type="checkbox" />
-+                </li>
-+                <li>
-+                  <label for="Sleight of Hand">Sleight of Hand <span class="skill">(Dex)</span></label><input name="Sleight of Hand" placeholder="+0" type="text" /><input name="Sleight of Hand-prof" type="checkbox" />
-+                </li>
-+                <li>
-+                  <label for="Stealth">Stealth <span class="skill">(Dex)</span></label><input name="Stealth" placeholder="+0" type="text" /><input name="Stealth-prof" type="checkbox" />
-+                </li>
-+                <li>
-+                  <label for="Survival">Survival <span class="skill">(Wis)</span></label><input name="Survival" placeholder="+0" type="text" /><input name="Survival-prof" type="checkbox" />
-+                </li>
-+              </ul>
-+              <div class="label">
-+                Skills
-+              </div>
-+            </div>
-+          </div>
-+        </section>
-+        <div class="passive-perception box">
-+          <div class="label-container">
-+            <label for="passiveperception">Passive Wisdom (Perception)</label>
-+          </div>
-+          <input name="passiveperception" placeholder="10" />
-+        </div>
-+        <div class="otherprofs box textblock">
-+          <label for="otherprofs">Other Proficiencies and Languages</label><textarea name="otherprofs"></textarea>
-+        </div>
-+      </section>
-+      <section>
-+        <section class="combat">
-+          <div class="armorclass">
-+            <div>
-+              <label for="ac">Armor Class</label><input name="ac" placeholder="10" type="text" />
-+            </div>
-+          </div>
-+          <div class="initiative">
-+            <div>
-+              <label for="initiative">Initiative</label><input name="initiative" placeholder="+0" type="text" />
-+            </div>
-+          </div>
-+          <div class="speed">
-+            <div>
-+              <label for="speed">Speed</label><input name="speed" placeholder="30" type="text" />
-+            </div>
-+          </div>
-+          <div class="hp">
-+            <div class="regular">
-+              <div class="max">
-+                <label for="maxhp">Hit Point Maximum</label><input name="maxhp" placeholder="10" type="text" />
-+              </div>
-+              <div class="current">
-+                <label for="currenthp">Current Hit Points</label><input name="currenthp" type="text" />
-+              </div>
-+            </div>
-+            <div class="temporary">
-+              <label for="temphp">Temporary Hit Points</label><input name="temphp" type="text" />
-+            </div>
-+          </div>
-+          <div class="hitdice">
-+            <div>
-+              <div class="total">
-+                <label for="totalhd">Total</label><input name="totalhd" placeholder="2d10" type="text" onclick="totalhd_clicked()" />
-+              </div>
-+              <div class="remaining">
-+                <label for="remaininghd">Hit Dice</label><input name="remaininghd" type="text" />
-+              </div>
-+            </div>
-+          </div>
-+          <div class="deathsaves">
-+            <div>
-+              <div class="label">
-+                <label for="deathsuccess1">Death Saves</label>
-+              </div>
-+              <div class="marks">
-+                <div class="deathsuccesses">
-+                  <label for="deathsuccess1">Successes</label>
-+                  <div class="bubbles">
-+                    <input name="deathsuccess1" type="checkbox" />
-+                    <input name="deathsuccess2" type="checkbox" />
-+                    <input name="deathsuccess3" type="checkbox" />
-+                  </div>
-+                </div>
-+                <div class="deathfails">
-+                  <label for="deathfail1">Failures</label>
-+                  <div class="bubbles">
-+                    <input id="deathfail1" name="deathfail1" type="checkbox" />
-+                    <input name="deathfail2" type="checkbox" />
-+                    <input name="deathfail3" type="checkbox" />
-+                  </div>
-+                </div>
-+              </div>
-+            </div>
-+          </div>
-+        </section>
-+        <section class="attacksandspellcasting">
-+          <div>
-+            <label for="spellsarea">Attacks & Spellcasting</label>
-+            <table>
-+              <thead>
-+                <tr>
-+                  <th>
-+                    Name
-+                  </th>
-+                  <th>
-+                    Atk Bonus
-+                  </th>
-+                  <th>
-+                    Damage/Type
-+                  </th>
-+                </tr>
-+              </thead>
-+              <tbody>
-+                <tr>
-+                  <td>
-+                    <input name="atkname1" type="text" />
-+                  </td>
-+                  <td>
-+                    <input name="atkbonus1" type="text" />
-+                  </td>
-+                  <td>
-+                    <input name="atkdamage1" type="text" />
-+                  </td>
-+                </tr>
-+                <tr>
-+                  <td>
-+                    <input name="atkname2" type="text" />
-+                  </td>
-+                  <td>
-+                    <input name="atkbonus2" type="text" />
-+                  </td>
-+                  <td>
-+                    <input name="atkdamage2" type="text" />
-+                  </td>
-+                </tr>
-+                <tr>
-+                  <td>
-+                    <input name="atkname3" type="text" />
-+                  </td>
-+                  <td>
-+                    <input name="atkbonus3" type="text" />
-+                  </td>
-+                  <td>
-+                    <input name="atkdamage3" type="text" />
-+                  </td>
-+                </tr>
-+              </tbody>
-+            </table>
-+            <textarea name="spellsarea" placeholder="Spells or spell notes go here"></textarea>
-+          </div>
-+        </section>
-+        <section class="equipment">
-+          <div>
-+            <label for="equipment">Equipment</label>
-+            <div class="money">
-+              <ul>
-+                <li>
-+                  <label for="cp">cp</label><input name="cp" />
-+                </li>
-+                <li>
-+                  <label for="sp">sp</label><input name="sp" />
-+                </li>
-+                <li>
-+                  <label for="ep">ep</label><input name="ep" />
-+                </li>
-+                <li>
-+                  <label for="gp">gp</label><input name="gp" />
-+                </li>
-+                <li>
-+                  <label for="pp">pp</label><input name="pp" />
-+                </li>
-+              </ul>
-+            </div>
-+            <textarea id="equipment" name="equipment" placeholder="Equipment list here"></textarea>
-+          </div>
-+        </section>
-+      </section>
-+      <section>
-+        <section class="flavor">
-+          <div class="personality">
-+            <label for="personality">Personality</label><textarea name="personality"></textarea>
-+          </div>
-+          <div class="ideals">
-+            <label for="ideals">Ideals</label><textarea name="ideals"></textarea>
-+          </div>
-+          <div class="bonds">
-+            <label for="bonds">Bonds</label><textarea name="bonds"></textarea>
-+          </div>
-+          <div class="flaws">
-+            <label for="flaws">Flaws</label><textarea name="flaws"></textarea>
-+          </div>
-+        </section>
-+        <section class="features">
-+          <div>
-+            <label for="features">Features & Traits</label><textarea name="features"></textarea>
-+          </div>
-+        </section>
-+      </section>
-+    </main>
-+  </form>
-+
+       <title>MPP Character Sheet</title>
+   </head>
+   <body>
+@@ -379,6 +379,6 @@
+     </main>
+   </form>
+ 
+-  <script src="charactersheet.js?v=20251020-1"></script>
 +  <script src="js/charactersheet.js"></script>
-+  </body>
-+  </html>
+   </body>
+   </html>
 diff --git a/frontend/index.html b/web/static/index.html
-similarity index 84%
+similarity index 86%
 rename from frontend/index.html
 rename to web/static/index.html
-index a1cc578..aa24d3f 100644
+index a1cc578..2b429fe 100644
 --- a/frontend/index.html
 +++ b/web/static/index.html
-@@ -1,26 +1,26 @@
--<!DOCTYPE html>
--<html lang="en">
--<head>
--  <meta charset="utf-8" />
--  <title>All Characters</title>
--  <meta name="viewport" content="width=device-width, initial-scale=1" />
+@@ -4,8 +4,8 @@
+   <meta charset="utf-8" />
+   <title>All Characters</title>
+   <meta name="viewport" content="width=device-width, initial-scale=1" />
 -  <link rel="stylesheet" href="normalize.css">
 -  <link rel="stylesheet" href="style.css">
--  <style>
--    body { max-width: 860px; margin: 20px auto; padding: 0 12px; font-family: system-ui, sans-serif; }
--    h1 { margin: 16px 0; }
--    ul#charList { list-style: none; padding: 0; margin: 0; }
--    ul#charList li { border: 1px solid #ddd; border-radius: 10px; padding: 12px 14px; margin: 10px 0; background:#fff; display:flex; align-items:center; justify-content:space-between; }
--    .meta { color:#666; font-size: 14px; }
--    a.btn { text-decoration:none; border:1px solid #000; border-radius:10px; padding:6px 10px; }
--    .empty { color:#666; margin-top: 10px; }
--  </style>
--</head>
--<body>
--  <h1>All Characters</h1>
--  <p class="empty" id="emptyMsg" style="display:none">No characters found. Create one with your CLI and refresh.</p>
--  <ul id="charList"></ul>
--
--  <script type="module" src="list.js"></script>
--</body>
--</html>
-+<!DOCTYPE html>
-+<html lang="en">
-+<head>
-+  <meta charset="utf-8" />
-+  <title>All Characters</title>
-+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 +  <link rel="stylesheet" href="css/normalize.css">
 +  <link rel="stylesheet" href="css/style.css">
-+  <style>
-+    body { max-width: 860px; margin: 20px auto; padding: 0 12px; font-family: system-ui, sans-serif; }
-+    h1 { margin: 16px 0; }
-+    ul#charList { list-style: none; padding: 0; margin: 0; }
-+    ul#charList li { border: 1px solid #ddd; border-radius: 10px; padding: 12px 14px; margin: 10px 0; background:#fff; display:flex; align-items:center; justify-content:space-between; }
-+    .meta { color:#666; font-size: 14px; }
-+    a.btn { text-decoration:none; border:1px solid #000; border-radius:10px; padding:6px 10px; }
-+    .empty { color:#666; margin-top: 10px; }
-+  </style>
-+</head>
-+<body>
-+  <h1>All Characters</h1>
-+  <p class="empty" id="emptyMsg" style="display:none">No characters found. Create one with your CLI and refresh.</p>
-+  <ul id="charList"></ul>
-+
+   <style>
+     body { max-width: 860px; margin: 20px auto; padding: 0 12px; font-family: system-ui, sans-serif; }
+     h1 { margin: 16px 0; }
+@@ -21,6 +21,6 @@
+   <p class="empty" id="emptyMsg" style="display:none">No characters found. Create one with your CLI and refresh.</p>
+   <ul id="charList"></ul>
+ 
+-  <script type="module" src="list.js"></script>
 +  <script type="module" src="js/list.js"></script>
-+</body>
-+</html>
+ </body>
+ </html>
 diff --git a/web/static/js/charactersheet.js b/web/static/js/charactersheet.js
 new file mode 100644
-index 0000000..090d24f
+index 0000000..28dda80
 --- /dev/null
 +++ b/web/static/js/charactersheet.js
 @@ -0,0 +1,214 @@
@@ -10897,316 +12847,6 @@ index 0000000..090d24f
 +  }
 +}
 diff --git a/frontend/list.js b/web/static/js/list.js
-similarity index 96%
+similarity index 100%
 rename from frontend/list.js
 rename to web/static/js/list.js
-index 80bcb00..c48c16f 100644
---- a/frontend/list.js
-+++ b/web/static/js/list.js
-@@ -1,153 +1,153 @@
--// frontend/list.js
--// List all characters from the manifest, let user open or create.
--
--const listEl = document.getElementById("charList");
--const emptyMsg = document.getElementById("emptyMsg");
--
--// Helpers
--const manifestURL = "/frontend/manifest.json";
--const toName = (path) => {
--  const base = path.split("/").pop() || "";
--  return base.endsWith(".json") ? base.slice(0, -5) : base;
--};
--const charPath = (name) => `/characters/${encodeURIComponent(name)}.json`;
--
--async function loadManifest() {
--  const res = await fetch(manifestURL, { cache: "no-store" });
--  if (!res.ok) throw new Error("Cannot load manifest");
--  return await res.json(); // array of /characters/*.json
--}
--
--async function fetchMeta(path) {
--  try {
--    const res = await fetch(path, { cache: "no-store" });
--    if (!res.ok) return null;
--    const j = await res.json();
--    // Nice-to-have summary (all optional)
--    const cls = j.Class || j.class || "";
--    const lvl = j.Level || j.level || "";
--    const race = j.Race || j.race || "";
--    return {
--      display: (j.Name || j.name || toName(path)),
--      subtitle: [race, cls && (lvl ? `${cls} ${lvl}` : cls)]
--        .filter(Boolean)
--        .join(" — ")
--    };
--  } catch {
--    return null;
--  }
--}
--
--function makeRow(name, path, meta) {
--  const li = document.createElement("li");
--  li.style.border = "1px solid #ddd";
--  li.style.borderRadius = "10px";
--  li.style.padding = "10px 12px";
--  li.style.marginBottom = "10px";
--  li.style.display = "flex";
--  li.style.alignItems = "center";
--  li.style.justifyContent = "space-between";
--  li.style.gap = "12px";
--
--  const left = document.createElement("div");
--  const title = document.createElement("div");
--  title.textContent = meta?.display || name;
--  title.style.fontWeight = "600";
--  const sub = document.createElement("div");
--  sub.textContent = meta?.subtitle || "";
--  sub.className = "meta";
--  sub.style.color = "#666";
--  sub.style.fontSize = "14px";
--  left.appendChild(title);
--  if (sub.textContent) left.appendChild(sub);
--
--  const actions = document.createElement("div");
--  actions.style.display = "flex";
--  actions.style.gap = "8px";
--
--  const open = document.createElement("a");
--  open.href = `charactersheet.html?name=${encodeURIComponent(name)}`;
--  open.textContent = "Open";
--  open.className = "btn";
--  open.style.textDecoration = "none";
--  open.style.border = "1px solid #000";
--  open.style.borderRadius = "10px";
--  open.style.padding = "6px 10px";
--
--  // Deletion is CLI-only
--  actions.append(open);
--  li.append(left, actions);
--  return li;
--}
--
--// CREATE NEW
--function addCreateUI() {
--  const wrap = document.createElement("div");
--  wrap.style.display = "flex";
--  wrap.style.gap = "8px";
--  wrap.style.margin = "16px 0";
--
--  const input = document.createElement("input");
--  input.placeholder = "New character name (file-safe)";
--  input.style.flex = "1";
--  input.maxLength = 60;
--
--  const btn = document.createElement("button");
--  btn.textContent = "Create";
--  btn.onclick = async () => {
--    const raw = (input.value || "").trim();
--    if (!raw) return;
--    // Keep filename simple
--    const name = raw.replaceAll(/[^a-zA-Z0-9._ -]/g, "_");
--    const payload = {
--      Name: raw,
--      Class: "",
--      Level: 1,
--      Race: "",
--      Alignment: "",
--      XP: 0,
--      Str: 10, Dex: 10, Con: 10, Int: 10, Wis: 10, Cha: 10,
--      ArmorClass: 10, Initiative: 0, Speed: 30,
--      MaxHP: 10, CurrentHP: 10, TempHP: 0,
--      Equipment: [], Spells: [], Money: { cp: 0, sp: 0, gp: 0 },
--      SkillProficiencies: []
--    };
--    const res = await fetch(charPath(name), {
--      method: "PUT",
--      headers: { "Content-Type": "application/json" },
--      body: JSON.stringify(payload, null, 2)
--    });
--    if (!res.ok) {
--      alert("Create failed: " + (await res.text()));
--      return;
--    }
--    location.href = `charactersheet.html?name=${encodeURIComponent(name)}`;
--  };
--
--  wrap.append(input, btn);
--  listEl.parentNode.insertBefore(wrap, listEl);
--}
--
--// Render list
--try {
--  addCreateUI();
--  const files = await loadManifest();
--  if (!files || files.length === 0) {
--    emptyMsg.style.display = "block";
--  } else {
--    emptyMsg.style.display = "none";
--    files.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
--    for (const p of files) {
--      const name = toName(p);
--      // Normalize to the canonical characters path so fetchMeta requests
--      // the correct location regardless of how the manifest listed it.
--      const path = charPath(name);
--      const meta = await fetchMeta(path);
--      listEl.appendChild(makeRow(name, path, meta));
--    }
--  }
--} catch (e) {
--  emptyMsg.textContent = "Failed to load characters.";
--  emptyMsg.style.display = "block";
--  console.error(e);
--}
-+// frontend/list.js
-+// List all characters from the manifest, let user open or create.
-+
-+const listEl = document.getElementById("charList");
-+const emptyMsg = document.getElementById("emptyMsg");
-+
-+// Helpers
-+const manifestURL = "/frontend/manifest.json";
-+const toName = (path) => {
-+  const base = path.split("/").pop() || "";
-+  return base.endsWith(".json") ? base.slice(0, -5) : base;
-+};
-+const charPath = (name) => `/characters/${encodeURIComponent(name)}.json`;
-+
-+async function loadManifest() {
-+  const res = await fetch(manifestURL, { cache: "no-store" });
-+  if (!res.ok) throw new Error("Cannot load manifest");
-+  return await res.json(); // array of /characters/*.json
-+}
-+
-+async function fetchMeta(path) {
-+  try {
-+    const res = await fetch(path, { cache: "no-store" });
-+    if (!res.ok) return null;
-+    const j = await res.json();
-+    // Nice-to-have summary (all optional)
-+    const cls = j.Class || j.class || "";
-+    const lvl = j.Level || j.level || "";
-+    const race = j.Race || j.race || "";
-+    return {
-+      display: (j.Name || j.name || toName(path)),
-+      subtitle: [race, cls && (lvl ? `${cls} ${lvl}` : cls)]
-+        .filter(Boolean)
-+        .join(" — ")
-+    };
-+  } catch {
-+    return null;
-+  }
-+}
-+
-+function makeRow(name, path, meta) {
-+  const li = document.createElement("li");
-+  li.style.border = "1px solid #ddd";
-+  li.style.borderRadius = "10px";
-+  li.style.padding = "10px 12px";
-+  li.style.marginBottom = "10px";
-+  li.style.display = "flex";
-+  li.style.alignItems = "center";
-+  li.style.justifyContent = "space-between";
-+  li.style.gap = "12px";
-+
-+  const left = document.createElement("div");
-+  const title = document.createElement("div");
-+  title.textContent = meta?.display || name;
-+  title.style.fontWeight = "600";
-+  const sub = document.createElement("div");
-+  sub.textContent = meta?.subtitle || "";
-+  sub.className = "meta";
-+  sub.style.color = "#666";
-+  sub.style.fontSize = "14px";
-+  left.appendChild(title);
-+  if (sub.textContent) left.appendChild(sub);
-+
-+  const actions = document.createElement("div");
-+  actions.style.display = "flex";
-+  actions.style.gap = "8px";
-+
-+  const open = document.createElement("a");
-+  open.href = `charactersheet.html?name=${encodeURIComponent(name)}`;
-+  open.textContent = "Open";
-+  open.className = "btn";
-+  open.style.textDecoration = "none";
-+  open.style.border = "1px solid #000";
-+  open.style.borderRadius = "10px";
-+  open.style.padding = "6px 10px";
-+
-+  // Deletion is CLI-only
-+  actions.append(open);
-+  li.append(left, actions);
-+  return li;
-+}
-+
-+// CREATE NEW
-+function addCreateUI() {
-+  const wrap = document.createElement("div");
-+  wrap.style.display = "flex";
-+  wrap.style.gap = "8px";
-+  wrap.style.margin = "16px 0";
-+
-+  const input = document.createElement("input");
-+  input.placeholder = "New character name (file-safe)";
-+  input.style.flex = "1";
-+  input.maxLength = 60;
-+
-+  const btn = document.createElement("button");
-+  btn.textContent = "Create";
-+  btn.onclick = async () => {
-+    const raw = (input.value || "").trim();
-+    if (!raw) return;
-+    // Keep filename simple
-+    const name = raw.replaceAll(/[^a-zA-Z0-9._ -]/g, "_");
-+    const payload = {
-+      Name: raw,
-+      Class: "",
-+      Level: 1,
-+      Race: "",
-+      Alignment: "",
-+      XP: 0,
-+      Str: 10, Dex: 10, Con: 10, Int: 10, Wis: 10, Cha: 10,
-+      ArmorClass: 10, Initiative: 0, Speed: 30,
-+      MaxHP: 10, CurrentHP: 10, TempHP: 0,
-+      Equipment: [], Spells: [], Money: { cp: 0, sp: 0, gp: 0 },
-+      SkillProficiencies: []
-+    };
-+    const res = await fetch(charPath(name), {
-+      method: "PUT",
-+      headers: { "Content-Type": "application/json" },
-+      body: JSON.stringify(payload, null, 2)
-+    });
-+    if (!res.ok) {
-+      alert("Create failed: " + (await res.text()));
-+      return;
-+    }
-+    location.href = `charactersheet.html?name=${encodeURIComponent(name)}`;
-+  };
-+
-+  wrap.append(input, btn);
-+  listEl.parentNode.insertBefore(wrap, listEl);
-+}
-+
-+// Render list
-+try {
-+  addCreateUI();
-+  const files = await loadManifest();
-+  if (!files || files.length === 0) {
-+    emptyMsg.style.display = "block";
-+  } else {
-+    emptyMsg.style.display = "none";
-+    files.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
-+    for (const p of files) {
-+      const name = toName(p);
-+      // Normalize to the canonical characters path so fetchMeta requests
-+      // the correct location regardless of how the manifest listed it.
-+      const path = charPath(name);
-+      const meta = await fetchMeta(path);
-+      listEl.appendChild(makeRow(name, path, meta));
-+    }
-+  }
-+} catch (e) {
-+  emptyMsg.textContent = "Failed to load characters.";
-+  emptyMsg.style.display = "block";
-+  console.error(e);
-+}

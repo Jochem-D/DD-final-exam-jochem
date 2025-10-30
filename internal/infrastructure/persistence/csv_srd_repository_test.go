@@ -7,9 +7,15 @@ import (
 )
 
 const (
-	testDataDir       = "../../../assets/srd"
-	spellsCSV         = "5e-SRD-Spells.csv"
-	equipmentCSV      = "5e-SRD-Equipment.csv"
+	testDataDir              = "../../../assets/srd"
+	spellsCSV                = "5e-SRD-Spells.csv"
+	equipmentCSV             = "5e-SRD-Equipment.csv"
+	nonExistentEquipmentPath = "/nonexistent/equipment.csv"
+	nonExistentSpellsPath    = "/nonexistent/spells.csv"
+	spellFireball            = "Fireball"
+	spellMagicMissile        = "Magic Missile"
+	errUnexpected            = "Unexpected error: %v"
+	errExpectedFileNotExist  = "Expected error when CSV file doesn't exist"
 )
 
 func getTestCSVPaths(t *testing.T) (string, string) {
@@ -45,12 +51,12 @@ func TestIsValidSpellSuccess(t *testing.T) {
 		name      string
 		spellName string
 	}{
-		{"exact match", "Fireball"},
+		{"exact match", spellFireball},
 		{"lowercase", "fireball"},
 		{"uppercase", "FIREBALL"},
 		{"with spaces", " Fireball "},
 		{"cantrip", "Acid Splash"},
-		{"level 1", "Magic Missile"},
+		{"level 1", spellMagicMissile},
 	}
 	
 	for _, tt := range tests {
@@ -85,11 +91,11 @@ func TestIsValidSpellNotFound(t *testing.T) {
 }
 
 func TestIsValidSpellFileNotFound(t *testing.T) {
-	repo := NewCSVSRDRepository("/nonexistent/equipment.csv", "/nonexistent/spells.csv")
+	repo := NewCSVSRDRepository(nonExistentEquipmentPath, nonExistentSpellsPath)
 	
-	valid := repo.IsValidSpell("Fireball")
+	valid := repo.IsValidSpell(spellFireball)
 	if valid {
-		t.Error("Expected false when CSV file doesn't exist")
+		t.Error(errExpectedFileNotExist)
 	}
 }
 
@@ -143,11 +149,11 @@ func TestIsValidEquipmentNotFound(t *testing.T) {
 }
 
 func TestIsValidEquipmentFileNotFound(t *testing.T) {
-	repo := NewCSVSRDRepository("/nonexistent/equipment.csv", "/nonexistent/spells.csv")
+	repo := NewCSVSRDRepository(nonExistentEquipmentPath, nonExistentSpellsPath)
 	
 	valid := repo.IsValidEquipment("Longsword")
 	if valid {
-		t.Error("Expected false when CSV file doesn't exist")
+		t.Error(errExpectedFileNotExist)
 	}
 }
 
@@ -162,12 +168,12 @@ func TestIsSpellForClassSuccess(t *testing.T) {
 		class     string
 		shouldBe  bool
 	}{
-		{"Fireball", "Wizard", true},
-		{"Fireball", "Sorcerer", true},
-		{"Fireball", "Cleric", false},
+		{spellFireball, "Wizard", true},
+		{spellFireball, "Sorcerer", true},
+		{spellFireball, "Cleric", false},
 		{"Cure Wounds", "Cleric", true},
 		{"Cure Wounds", "Wizard", false},
-		{"Magic Missile", "Wizard", true},
+		{spellMagicMissile, "Wizard", true},
 		{"magic missile", "wizard", true}, // lowercase
 		{"MAGIC MISSILE", "WIZARD", true}, // uppercase
 	}
@@ -176,7 +182,7 @@ func TestIsSpellForClassSuccess(t *testing.T) {
 		t.Run(tt.spell+"_for_"+tt.class, func(t *testing.T) {
 			available, err := repo.IsSpellForClass(tt.spell, tt.class)
 			if err != nil {
-				t.Fatalf("Unexpected error: %v", err)
+				t.Fatalf(errUnexpected, err)
 			}
 			if available != tt.shouldBe {
 				t.Errorf("Expected '%s' for %s to be %v, got %v", 
@@ -200,11 +206,11 @@ func TestIsSpellForClassNotFound(t *testing.T) {
 }
 
 func TestIsSpellForClassFileError(t *testing.T) {
-	repo := NewCSVSRDRepository("/nonexistent/equipment.csv", "/nonexistent/spells.csv")
+	repo := NewCSVSRDRepository(nonExistentEquipmentPath, nonExistentSpellsPath)
 	
-	_, err := repo.IsSpellForClass("Fireball", "Wizard")
+	_, err := repo.IsSpellForClass(spellFireball, "Wizard")
 	if err == nil {
-		t.Error("Expected error when CSV file doesn't exist")
+		t.Error(errExpectedFileNotExist)
 	}
 }
 
@@ -217,7 +223,7 @@ func TestGetLearnableSpellsSuccess(t *testing.T) {
 	// Wizard with no known spells should get many learnable spells
 	spells, err := repo.GetLearnableSpells("Wizard", []string{})
 	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
+		t.Fatalf(errUnexpected, err)
 	}
 	
 	if len(spells) == 0 {
@@ -227,7 +233,7 @@ func TestGetLearnableSpellsSuccess(t *testing.T) {
 	// Should include Fireball
 	hasFireball := false
 	for _, s := range spells {
-		if s == "Fireball" {
+		if s == spellFireball {
 			hasFireball = true
 			break
 		}
@@ -241,15 +247,15 @@ func TestGetLearnableSpellsExcludesKnown(t *testing.T) {
 	equipPath, spellPath := getTestCSVPaths(t)
 	repo := NewCSVSRDRepository(equipPath, spellPath)
 	
-	knownSpells := []string{"Fireball", "Magic Missile"}
+	knownSpells := []string{spellFireball, spellMagicMissile}
 	spells, err := repo.GetLearnableSpells("Wizard", knownSpells)
 	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
+		t.Fatalf(errUnexpected, err)
 	}
 	
 	// Should not include Fireball or Magic Missile
 	for _, s := range spells {
-		if s == "Fireball" || s == "Magic Missile" {
+		if s == spellFireball || s == spellMagicMissile {
 			t.Errorf("Learnable spells should not include already known spell: %s", s)
 		}
 	}
@@ -262,12 +268,12 @@ func TestGetLearnableSpellsClassSpecific(t *testing.T) {
 	// Cleric should not get Wizard-only spells
 	spells, err := repo.GetLearnableSpells("Cleric", []string{})
 	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
+		t.Fatalf(errUnexpected, err)
 	}
 	
 	hasFireball := false
 	for _, s := range spells {
-		if s == "Fireball" {
+		if s == spellFireball {
 			hasFireball = true
 			break
 		}
@@ -278,11 +284,11 @@ func TestGetLearnableSpellsClassSpecific(t *testing.T) {
 }
 
 func TestGetLearnableSpellsFileError(t *testing.T) {
-	repo := NewCSVSRDRepository("/nonexistent/equipment.csv", "/nonexistent/spells.csv")
+	repo := NewCSVSRDRepository(nonExistentEquipmentPath, nonExistentSpellsPath)
 	
 	_, err := repo.GetLearnableSpells("Wizard", []string{})
 	if err == nil {
-		t.Error("Expected error when CSV file doesn't exist")
+		t.Error(errExpectedFileNotExist)
 	}
 }
 
@@ -297,8 +303,8 @@ func TestGetSpellLevelSuccess(t *testing.T) {
 		level int
 	}{
 		{"Acid Splash", 0},      // Cantrip
-		{"Magic Missile", 1},    // Level 1
-		{"Fireball", 3},         // Level 3
+		{spellMagicMissile, 1},  // Level 1
+		{spellFireball, 3},      // Level 3
 		{"fireball", 3},         // Case insensitive
 		{"FIREBALL", 3},         // Uppercase
 	}
@@ -307,7 +313,7 @@ func TestGetSpellLevelSuccess(t *testing.T) {
 		t.Run(tt.spell, func(t *testing.T) {
 			level, err := repo.GetSpellLevel(tt.spell)
 			if err != nil {
-				t.Fatalf("Unexpected error: %v", err)
+				t.Fatalf(errUnexpected, err)
 			}
 			if level != tt.level {
 				t.Errorf("Expected %s to be level %d, got %d", tt.spell, tt.level, level)
@@ -327,11 +333,11 @@ func TestGetSpellLevelNotFound(t *testing.T) {
 }
 
 func TestGetSpellLevelFileError(t *testing.T) {
-	repo := NewCSVSRDRepository("/nonexistent/equipment.csv", "/nonexistent/spells.csv")
+	repo := NewCSVSRDRepository(nonExistentEquipmentPath, nonExistentSpellsPath)
 	
-	_, err := repo.GetSpellLevel("Fireball")
+	_, err := repo.GetSpellLevel(spellFireball)
 	if err == nil {
-		t.Error("Expected error when CSV file doesn't exist")
+		t.Error(errExpectedFileNotExist)
 	}
 }
 
@@ -364,6 +370,23 @@ func TestCanonKey(t *testing.T) {
 	}
 }
 
+// Helper function to check if a slice contains all required strings
+func containsAll(alternates []string, required []string) (bool, string) {
+	for _, req := range required {
+		found := false
+		for _, alt := range alternates {
+			if alt == req {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false, req
+		}
+	}
+	return true, ""
+}
+
 func TestEquipAlternates(t *testing.T) {
 	repo := &CSVSRDRepository{}
 	
@@ -381,18 +404,10 @@ func TestEquipAlternates(t *testing.T) {
 		t.Run(tt.input, func(t *testing.T) {
 			alternates := repo.equipAlternates(tt.input)
 			
-			for _, mustHave := range tt.mustHave {
-				found := false
-				for _, alt := range alternates {
-					if alt == mustHave {
-						found = true
-						break
-					}
-				}
-				if !found {
-					t.Errorf("equipAlternates(%q) missing %q, got %v", 
-						tt.input, mustHave, alternates)
-				}
+			hasAll, missing := containsAll(alternates, tt.mustHave)
+			if !hasAll {
+				t.Errorf("equipAlternates(%q) missing %q, got %v", 
+					tt.input, missing, alternates)
 			}
 		})
 	}
