@@ -3,11 +3,10 @@ package services
 import (
     "testing"
     "ddsheetfinal/internal/domain/entities"
-    "ddsheetfinal/internal/domain/services"
 )
 
 func TestComputeMaxHPExamCases(t *testing.T) {
-    svc := services.NewCharacterService()
+    svc := NewCharacterService()
 
     cases := []struct{
         name string
@@ -29,6 +28,14 @@ func TestComputeMaxHPExamCases(t *testing.T) {
                 Str:10, Dex:10, Con:14, Int:10, Wis:10, Cha:10,
             },
             want: 59,
+        },
+        {
+            name: "Level 0 returns 0 HP",
+            ch: &entities.Character{
+                Race: "Human", Class: "Fighter", Level: 0,
+                Str:10, Dex:10, Con:10, Int:10, Wis:10, Cha:10,
+            },
+            want: 0,
         },
     }
 
