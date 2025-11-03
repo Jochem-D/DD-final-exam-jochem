@@ -1,0 +1,208 @@
+diff --git a/internal/application/dtos/enriched_character_dto.go b/internal/application/dtos/enriched_character_dto.go
+index 1486edb..5b73e0c 100644
+--- a/internal/application/dtos/enriched_character_dto.go
++++ b/internal/application/dtos/enriched_character_dto.go
+@@ -15,12 +15,13 @@ type EnrichedCharacterDTO struct {
+ 	ChaMod int `json:"cha_mod"`
+ 	
+ 	// Derived Stats
+-	ProficiencyBonus int    `json:"proficiency_bonus"`
+-	ArmorClass       int    `json:"armor_class"`
+-	ACCalculation    string `json:"ac_calculation"`
+-	Initiative       int    `json:"initiative"`
+-	PassivePerception int   `json:"passive_perception"`
+-	Speed            int    `json:"speed"`
++	ProficiencyBonus  int    `json:"proficiency_bonus"`
++	ArmorClass        int    `json:"armor_class"`
++	ACCalculation     string `json:"ac_calculation"`
++	Initiative        int    `json:"initiative"`
++	PassivePerception int    `json:"passive_perception"`
++	Speed             int    `json:"speed"`
++	MaxHP             int    `json:"max_hp"` 
+ 	
+ 	// Saving Throws (with proficiency applied)
+ 	StrSave int  `json:"str_save"`
+diff --git a/internal/application/usecases/get_enriched_character.go b/internal/application/usecases/get_enriched_character.go
+index dd99b61..15e289a 100644
+--- a/internal/application/usecases/get_enriched_character.go
++++ b/internal/application/usecases/get_enriched_character.go
+@@ -69,6 +69,9 @@ func (uc *GetEnrichedCharacterUseCase) Execute(characterName string) (*dtos.Enri
+ 	// Determine speed (racial speed - simplified)
+ 	speed := uc.getSpeed(character.Race)
+ 
++	// Calculate maximum hit points
++	maxHP := uc.characterService.ComputeMaxHP(character)
++
+ 	// Calculate saving throws with proficiency
+ 	strSaveProf := uc.characterService.IsSaveProficient(character, "Strength")
+ 	dexSaveProf := uc.characterService.IsSaveProficient(character, "Dexterity")
+@@ -123,6 +126,7 @@ func (uc *GetEnrichedCharacterUseCase) Execute(characterName string) (*dtos.Enri
+ 		Initiative:        initiative,
+ 		PassivePerception: passivePerception,
+ 		Speed:             speed,
++		MaxHP:             maxHP,
+ 		StrSave:           strSave,
+ 		DexSave:           dexSave,
+ 		ConSave:           conSave,
+diff --git a/internal/domain/entities/character.go b/internal/domain/entities/character.go
+index 29c8555..980d9c2 100644
+--- a/internal/domain/entities/character.go
++++ b/internal/domain/entities/character.go
+@@ -14,6 +14,8 @@ type Character struct {
+ 	Wis        int      `json:"wis"`
+ 	Cha        int      `json:"cha"`
+ 
++	MaxHP int `json:"max_hp,omitempty"`
++
+ 	ProficiencyBonus   int      `json:"proficiency_bonus,omitempty"`
+ 	SkillProficiencies []string `json:"skill_proficiencies,omitempty"`
+ 
+diff --git a/internal/domain/services/character_service.go b/internal/domain/services/character_service.go
+index 3470e42..ea02858 100644
+--- a/internal/domain/services/character_service.go
++++ b/internal/domain/services/character_service.go
+@@ -183,3 +183,74 @@ func (s *CharacterService) ComputeSkillModifier(char *entities.Character, skill
+ 	
+ 	return abilityMod
+ }
++
++// ComputeMaxHP calculates maximum hit points based on class, level, and CON (exam rules)
++func (s *CharacterService) ComputeMaxHP(char *entities.Character) int {
++	if char.Level <= 0 {
++		return 0
++	}
++
++	conMod := valueobjects.AbilityModifier(char.Con)
++
++	// After level 1: fixed average
++	fixed := s.getHitDieForClass(char.Class) // 7/6/5/4
++	// Level 1: max die value per class
++	maxDie := s.getMaxDieForClass(char.Class) // 12/10/8/6
++
++	// Level 1
++	hp := maxDie + conMod
++
++	// Levels 2..N
++	if char.Level > 1 {
++		hp += (char.Level - 1) * (fixed + conMod)
++	}
++
++	if hp < 1 {
++		hp = 1
++	}
++	return hp
++}
++
++
++// getHitDieForClass returns the fixed average HP per level for each class
++func (s *CharacterService) getHitDieForClass(class string) int {
++	classLower := strings.ToLower(strings.TrimSpace(class))
++	
++	hitDieMap := map[string]int{
++		"barbarian": 7, // d12
++		"fighter":   6, // d10
++		"paladin":   6, // d10
++		"ranger":    6, // d10
++		"bard":      5, // d8
++		"cleric":    5, // d8
++		"druid":     5, // d8
++		"monk":      5, // d8
++		"rogue":     5, // d8
++		"warlock":   5, // d8
++		"sorcerer":  4, // d6
++		"wizard":    4, // d6
++	}
++	
++	if hitDie, ok := hitDieMap[classLower]; ok {
++		return hitDie
++	}
++	
++	// Default to d8 (5) if class is not found
++	return 5
++}
++
++// getMaxDieForClass returns the max hit die value used at level 1
++func (s *CharacterService) getMaxDieForClass(class string) int {
++	classLower := strings.ToLower(strings.TrimSpace(class))
++
++	switch classLower {
++	case "barbarian":
++		return 12
++	case "fighter", "paladin", "ranger":
++		return 10
++	case "wizard", "sorcerer":
++		return 6
++	default: // d8 bucket (rogue, bard, cleric, druid, monk, warlock, artificer, etc.)
++		return 8
++	}
++}
+\ No newline at end of file
+diff --git a/internal/domain/services/compute_maxhp_test.go b/internal/domain/services/compute_maxhp_test.go
+new file mode 100644
+index 0000000..e024912
+--- /dev/null
++++ b/internal/domain/services/compute_maxhp_test.go
+@@ -0,0 +1,50 @@
++package services
++
++import (
++    "testing"
++    "ddsheetfinal/internal/domain/entities"
++)
++
++func TestComputeMaxHPExamCases(t *testing.T) {
++    svc := NewCharacterService()
++
++    cases := []struct{
++        name string
++        ch   *entities.Character
++        want int
++    }{
++        {
++            name: "Rogue L2, CON 12 -> 15",
++            ch: &entities.Character{
++                Race: "Halfling", Class: "Rogue", Level: 2,
++                Str:10, Dex:16, Con:12, Int:13, Wis:11, Cha:14,
++            },
++            want: 15,
++        },
++        {
++            name: "Barbarian L6, CON 14 -> 59",
++            ch: &entities.Character{
++                Race: "Hill Dwarf", Class: "Barbarian", Level: 6,
++                Str:10, Dex:10, Con:14, Int:10, Wis:10, Cha:10,
++            },
++            want: 59,
++        },
++        {
++            name: "Level 0 returns 0 HP",
++            ch: &entities.Character{
++                Race: "Human", Class: "Fighter", Level: 0,
++                Str:10, Dex:10, Con:10, Int:10, Wis:10, Cha:10,
++            },
++            want: 0,
++        },
++    }
++
++    for _, tc := range cases {
++        t.Run(tc.name, func(t *testing.T) {
++            got := svc.ComputeMaxHP(tc.ch)
++            if got != tc.want {
++                t.Fatalf("got %d, want %d", got, tc.want)
++            }
++        })
++    }
++}
+diff --git a/web/static/js/charactersheet.js b/web/static/js/charactersheet.js
+index 28dda80..e061652 100644
+--- a/web/static/js/charactersheet.js
++++ b/web/static/js/charactersheet.js
+@@ -92,6 +92,8 @@ function populateCharacterSheet(data) {
+   setFieldValue("ac", data.armor_class);
+   setFieldValue("initiative", signed(data.initiative));
+   setFieldValue("passiveperception", data.passive_perception);
++  setFieldValue("speed", data.speed);
++  setFieldValue("maxhp", data.max_hp);
+   
+ 
+   // Saving Throws

@@ -10099,10 +10099,10 @@ index 0000000..dc024ef
 +}
 diff --git a/internal/infrastructure/persistence/csv_srd_repository_test.go b/internal/infrastructure/persistence/csv_srd_repository_test.go
 new file mode 100644
-index 0000000..cf50332
+index 0000000..5ba974b
 --- /dev/null
 +++ b/internal/infrastructure/persistence/csv_srd_repository_test.go
-@@ -0,0 +1,399 @@
+@@ -0,0 +1,414 @@
 +package persistence
 +
 +import (
@@ -10112,9 +10112,15 @@ index 0000000..cf50332
 +)
 +
 +const (
-+	testDataDir       = "../../../assets/srd"
-+	spellsCSV         = "5e-SRD-Spells.csv"
-+	equipmentCSV      = "5e-SRD-Equipment.csv"
++	testDataDir              = "../../../assets/srd"
++	spellsCSV                = "5e-SRD-Spells.csv"
++	equipmentCSV             = "5e-SRD-Equipment.csv"
++	nonExistentEquipmentPath = "/nonexistent/equipment.csv"
++	nonExistentSpellsPath    = "/nonexistent/spells.csv"
++	spellFireball            = "Fireball"
++	spellMagicMissile        = "Magic Missile"
++	errUnexpected            = "Unexpected error: %v"
++	errExpectedFileNotExist  = "Expected error when CSV file doesn't exist"
 +)
 +
 +func getTestCSVPaths(t *testing.T) (string, string) {
@@ -10150,12 +10156,12 @@ index 0000000..cf50332
 +		name      string
 +		spellName string
 +	}{
-+		{"exact match", "Fireball"},
++		{"exact match", spellFireball},
 +		{"lowercase", "fireball"},
 +		{"uppercase", "FIREBALL"},
 +		{"with spaces", " Fireball "},
 +		{"cantrip", "Acid Splash"},
-+		{"level 1", "Magic Missile"},
++		{"level 1", spellMagicMissile},
 +	}
 +	
 +	for _, tt := range tests {
@@ -10190,11 +10196,11 @@ index 0000000..cf50332
 +}
 +
 +func TestIsValidSpellFileNotFound(t *testing.T) {
-+	repo := NewCSVSRDRepository("/nonexistent/equipment.csv", "/nonexistent/spells.csv")
++	repo := NewCSVSRDRepository(nonExistentEquipmentPath, nonExistentSpellsPath)
 +	
-+	valid := repo.IsValidSpell("Fireball")
++	valid := repo.IsValidSpell(spellFireball)
 +	if valid {
-+		t.Error("Expected false when CSV file doesn't exist")
++		t.Error(errExpectedFileNotExist)
 +	}
 +}
 +
@@ -10248,11 +10254,11 @@ index 0000000..cf50332
 +}
 +
 +func TestIsValidEquipmentFileNotFound(t *testing.T) {
-+	repo := NewCSVSRDRepository("/nonexistent/equipment.csv", "/nonexistent/spells.csv")
++	repo := NewCSVSRDRepository(nonExistentEquipmentPath, nonExistentSpellsPath)
 +	
 +	valid := repo.IsValidEquipment("Longsword")
 +	if valid {
-+		t.Error("Expected false when CSV file doesn't exist")
++		t.Error(errExpectedFileNotExist)
 +	}
 +}
 +
@@ -10267,12 +10273,12 @@ index 0000000..cf50332
 +		class     string
 +		shouldBe  bool
 +	}{
-+		{"Fireball", "Wizard", true},
-+		{"Fireball", "Sorcerer", true},
-+		{"Fireball", "Cleric", false},
++		{spellFireball, "Wizard", true},
++		{spellFireball, "Sorcerer", true},
++		{spellFireball, "Cleric", false},
 +		{"Cure Wounds", "Cleric", true},
 +		{"Cure Wounds", "Wizard", false},
-+		{"Magic Missile", "Wizard", true},
++		{spellMagicMissile, "Wizard", true},
 +		{"magic missile", "wizard", true}, // lowercase
 +		{"MAGIC MISSILE", "WIZARD", true}, // uppercase
 +	}
@@ -10281,7 +10287,7 @@ index 0000000..cf50332
 +		t.Run(tt.spell+"_for_"+tt.class, func(t *testing.T) {
 +			available, err := repo.IsSpellForClass(tt.spell, tt.class)
 +			if err != nil {
-+				t.Fatalf("Unexpected error: %v", err)
++				t.Fatalf(errUnexpected, err)
 +			}
 +			if available != tt.shouldBe {
 +				t.Errorf("Expected '%s' for %s to be %v, got %v", 
@@ -10305,11 +10311,11 @@ index 0000000..cf50332
 +}
 +
 +func TestIsSpellForClassFileError(t *testing.T) {
-+	repo := NewCSVSRDRepository("/nonexistent/equipment.csv", "/nonexistent/spells.csv")
++	repo := NewCSVSRDRepository(nonExistentEquipmentPath, nonExistentSpellsPath)
 +	
-+	_, err := repo.IsSpellForClass("Fireball", "Wizard")
++	_, err := repo.IsSpellForClass(spellFireball, "Wizard")
 +	if err == nil {
-+		t.Error("Expected error when CSV file doesn't exist")
++		t.Error(errExpectedFileNotExist)
 +	}
 +}
 +
@@ -10322,7 +10328,7 @@ index 0000000..cf50332
 +	// Wizard with no known spells should get many learnable spells
 +	spells, err := repo.GetLearnableSpells("Wizard", []string{})
 +	if err != nil {
-+		t.Fatalf("Unexpected error: %v", err)
++		t.Fatalf(errUnexpected, err)
 +	}
 +	
 +	if len(spells) == 0 {
@@ -10332,7 +10338,7 @@ index 0000000..cf50332
 +	// Should include Fireball
 +	hasFireball := false
 +	for _, s := range spells {
-+		if s == "Fireball" {
++		if s == spellFireball {
 +			hasFireball = true
 +			break
 +		}
@@ -10346,15 +10352,15 @@ index 0000000..cf50332
 +	equipPath, spellPath := getTestCSVPaths(t)
 +	repo := NewCSVSRDRepository(equipPath, spellPath)
 +	
-+	knownSpells := []string{"Fireball", "Magic Missile"}
++	knownSpells := []string{spellFireball, spellMagicMissile}
 +	spells, err := repo.GetLearnableSpells("Wizard", knownSpells)
 +	if err != nil {
-+		t.Fatalf("Unexpected error: %v", err)
++		t.Fatalf(errUnexpected, err)
 +	}
 +	
 +	// Should not include Fireball or Magic Missile
 +	for _, s := range spells {
-+		if s == "Fireball" || s == "Magic Missile" {
++		if s == spellFireball || s == spellMagicMissile {
 +			t.Errorf("Learnable spells should not include already known spell: %s", s)
 +		}
 +	}
@@ -10367,12 +10373,12 @@ index 0000000..cf50332
 +	// Cleric should not get Wizard-only spells
 +	spells, err := repo.GetLearnableSpells("Cleric", []string{})
 +	if err != nil {
-+		t.Fatalf("Unexpected error: %v", err)
++		t.Fatalf(errUnexpected, err)
 +	}
 +	
 +	hasFireball := false
 +	for _, s := range spells {
-+		if s == "Fireball" {
++		if s == spellFireball {
 +			hasFireball = true
 +			break
 +		}
@@ -10383,11 +10389,11 @@ index 0000000..cf50332
 +}
 +
 +func TestGetLearnableSpellsFileError(t *testing.T) {
-+	repo := NewCSVSRDRepository("/nonexistent/equipment.csv", "/nonexistent/spells.csv")
++	repo := NewCSVSRDRepository(nonExistentEquipmentPath, nonExistentSpellsPath)
 +	
 +	_, err := repo.GetLearnableSpells("Wizard", []string{})
 +	if err == nil {
-+		t.Error("Expected error when CSV file doesn't exist")
++		t.Error(errExpectedFileNotExist)
 +	}
 +}
 +
@@ -10402,8 +10408,8 @@ index 0000000..cf50332
 +		level int
 +	}{
 +		{"Acid Splash", 0},      // Cantrip
-+		{"Magic Missile", 1},    // Level 1
-+		{"Fireball", 3},         // Level 3
++		{spellMagicMissile, 1},  // Level 1
++		{spellFireball, 3},      // Level 3
 +		{"fireball", 3},         // Case insensitive
 +		{"FIREBALL", 3},         // Uppercase
 +	}
@@ -10412,7 +10418,7 @@ index 0000000..cf50332
 +		t.Run(tt.spell, func(t *testing.T) {
 +			level, err := repo.GetSpellLevel(tt.spell)
 +			if err != nil {
-+				t.Fatalf("Unexpected error: %v", err)
++				t.Fatalf(errUnexpected, err)
 +			}
 +			if level != tt.level {
 +				t.Errorf("Expected %s to be level %d, got %d", tt.spell, tt.level, level)
@@ -10432,11 +10438,11 @@ index 0000000..cf50332
 +}
 +
 +func TestGetSpellLevelFileError(t *testing.T) {
-+	repo := NewCSVSRDRepository("/nonexistent/equipment.csv", "/nonexistent/spells.csv")
++	repo := NewCSVSRDRepository(nonExistentEquipmentPath, nonExistentSpellsPath)
 +	
-+	_, err := repo.GetSpellLevel("Fireball")
++	_, err := repo.GetSpellLevel(spellFireball)
 +	if err == nil {
-+		t.Error("Expected error when CSV file doesn't exist")
++		t.Error(errExpectedFileNotExist)
 +	}
 +}
 +
@@ -10469,6 +10475,23 @@ index 0000000..cf50332
 +	}
 +}
 +
++// Helper function to check if a slice contains all required strings
++func containsAll(alternates []string, required []string) (bool, string) {
++	for _, req := range required {
++		found := false
++		for _, alt := range alternates {
++			if alt == req {
++				found = true
++				break
++			}
++		}
++		if !found {
++			return false, req
++		}
++	}
++	return true, ""
++}
++
 +func TestEquipAlternates(t *testing.T) {
 +	repo := &CSVSRDRepository{}
 +	
@@ -10486,18 +10509,10 @@ index 0000000..cf50332
 +		t.Run(tt.input, func(t *testing.T) {
 +			alternates := repo.equipAlternates(tt.input)
 +			
-+			for _, mustHave := range tt.mustHave {
-+				found := false
-+				for _, alt := range alternates {
-+					if alt == mustHave {
-+						found = true
-+						break
-+					}
-+				}
-+				if !found {
-+					t.Errorf("equipAlternates(%q) missing %q, got %v", 
-+						tt.input, mustHave, alternates)
-+				}
++			hasAll, missing := containsAll(alternates, tt.mustHave)
++			if !hasAll {
++				t.Errorf("equipAlternates(%q) missing %q, got %v", 
++					tt.input, missing, alternates)
 +			}
 +		})
 +	}
@@ -11137,7 +11152,7 @@ index 0000000..5ae32a5
 +}
 diff --git a/internal/presentation/cli/enrich_handler_test.go b/internal/presentation/cli/enrich_handler_test.go
 new file mode 100644
-index 0000000..8544da4
+index 0000000..9b0bd97
 --- /dev/null
 +++ b/internal/presentation/cli/enrich_handler_test.go
 @@ -0,0 +1,276 @@
@@ -11357,7 +11372,7 @@ index 0000000..8544da4
 +	
 +	outPath, err := handler.saveEnrichedCharacter("TestCharacter", testData, false)
 +	if err != nil {
-+		t.Fatalf("Unexpected error: %v", err)
++		t.Fatalf(errUnexpected, err)
 +	}
 +	
 +	expectedPath := filepath.Join("data", "enrichments", "TestCharacter.json")
@@ -11409,7 +11424,7 @@ index 0000000..8544da4
 +	
 +	_, err := handler.saveEnrichedCharacter("TestCharacter", testData, false)
 +	if err != nil {
-+		t.Fatalf("Unexpected error: %v", err)
++		t.Fatalf(errUnexpected, err)
 +	}
 +	
 +	// Verify directory was created
@@ -12548,13 +12563,13 @@ index 0000000..b82374e
 +  sonarsource/sonar-scanner-cli \
 +  -Dsonar.token="${SONAR_TOKEN}"
 diff --git a/sonar-project.properties b/sonar-project.properties
-index fa8fe95..5348ca5 100644
+index ca8c610..5348ca5 100644
 --- a/sonar-project.properties
 +++ b/sonar-project.properties
 @@ -1,12 +1,16 @@
  sonar.host.url=http://sonarqube:9000
--    sonar.projectKey=DDSheetFinal
--    sonar.token=sqp_e636e910d8fba89ef6168bb78cb91103fd0b4308
+-    sonar.projectKey=DDSheet
+-    sonar.token=sqp_acd3c6a063eb80dbbaa1215bf3bb59b23f3e03bb
 +    sonar.projectKey=DDSheetfinal
 +    # Token should be passed via command line: -Dsonar.token=YOUR_TOKEN
 +    # or via environment variable when running docker
